@@ -94,7 +94,7 @@ v2.0 扩展：战略、投注/立项、运维
 - **阶段间信息传递唯一载体是 Spec 文件**：Requirement Review 产出 Requirement Spec → Plan 读取并产出 Plan Spec → Execute 读取并逐切片实现 → Review 读取并产出 Review Report；禁止跨阶段的口头描述传递
 - 引入实时"统一语言"拦截机制（`CONTEXT.md`），阻止术语混淆向下游传播
 - 双层阶段门控：AI 自审核（6 项检查清单）+ Developer 人工确认
-- 宽进严出的输入路由：基于输入质量动态决定交互模式（Coaching / Mixed / Batch / Fast）
+- 宽进严出的输入处理：Skill 始终对输入做完整性评估——缺什么问什么，不缺就直接推进；用户无需感知或选择任何"模式"
 
 ---
 
@@ -102,7 +102,7 @@ v2.0 扩展：战略、投注/立项、运维
 
 ### Requirement Review 阶段
 
-1. As a Developer, I want to 提交一句话的模糊需求，so that 系统能评估输入质量并进入 Coaching 模式逐步引导我补充缺失细节，而非盲目生成代码
+1. As a Developer, I want to 提交一句话的模糊需求，so that Skill 能评估输入完整性并仅针对缺失的关键信息提问补充，而非盲目生成代码
 2. As a Developer, I want to 在整个项目中使用统一的 `CONTEXT.md` 词汇表，so that AI 若检测到与"_Avoid_"冲突的术语，能自动标记为 `❌ 矛盾` 并要求我裁决
 3. As a Developer, I want to AI 遇到不确定信息时输出显式的 `[NEEDS CLARIFICATION: 影响什么决策]`，so that 我能清晰分辨每个待办点影响的具体决策，避免隐藏假设
 4. As a Developer, I want to 在阶段结束前看到自动生成的"门控自审核清单"，so that 我能确认当前 Spec 合规（无 Placeholder、无内部矛盾），并由我最终签署放行
@@ -160,7 +160,7 @@ Requirement Review Skill → [Requirement Spec.md]
 1. **工作流状态追踪**：在 `.agents/active` 目录下维护 `status.yaml`，记录当前阶段、当前切片、关键决策，支持跨会话恢复
 2. **Skill 自描述规范**：依据 ADR 0001，每个 `SKILL.md` 自包含角色人格（Persona）、I/O 契约及门控逻辑，不依赖外部角色管理
 3. **统一语言拦截规则**：每个 Skill 内嵌 `CONTEXT.md` 检查指令，在生成阶段拦截术语偏差，新术语写入由 AI 提议、Developer 确认
-4. **输入质量分级路由**：Requirement Review Skill 内置多维度输入评估逻辑，动态选择 Coaching / Mixed / Batch / Fast 交互模式
+4. **输入完整性评估**：Requirement Review Skill 对每次输入做完整性检查，仅针对缺失信息提问，已有信息不重复追问；输入完整则直接进入 Problem Reframing 和 Spec 起草——没有需要用户感知的"模式"切换
 5. **垂直切片追踪**：Execute Skill 解析 Plan Spec 中的切片列表，生成可交互 Checkbox，将当前切片上下文精确传递给 LLM
 6. **Spec 模板与扫描**：每个阶段 Skill 内嵌对应 Spec 模板，自动扫描 Placeholder（`TODO`、`TBD`、`??`）并在门控时阻断
 
@@ -242,7 +242,7 @@ Requirement Review Skill → [Requirement Spec.md]
 - Skill 间的引用关系是否过时（`dependencies` 字段指向的 Skill 是否存在）
 
 **第三层：AI 行为评测（Promptfoo，LLM-as-a-Judge）**——约 20 个精心设计的边界场景构成 Golden Dataset，在 `tests/eval_datasets/` 目录维护：
-- 极差输入路由：提交"帮我加个导出功能"，验证是否进入 Coaching 模式
+- 模糊输入处理：提交"帮我加个导出功能"，验证 Skill 是否仅针对缺失信息提问而非直接生成代码
 - 术语冲突拦截：输入包含 `_Avoid_` 词，验证是否触发 `❌ 矛盾`
 - 禁止猜测原则：模糊需求下，验证是否输出 `[NEEDS CLARIFICATION]` 而非编造
 - 垂直切片校验：Plan 阶段输出是否包含端到端切片而非水平分层
