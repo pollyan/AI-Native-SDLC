@@ -86,10 +86,11 @@ v2.0 扩展：战略、投注/立项、运维
 
 ## 五、Solution
 
-构建 AI-Native SDLC 规范驱动开发引擎。核心能力抽象为 TypeScript 模块集（CLI 库形态，提供 IDE 插件级接入）。
+构建 AI-Native SDLC 规范驱动开发引擎。**交付形态是一套基于 `SKILL.md` 的规范包**，加载进 AI Coding 插件或 IDE 工具中运行（如 Cursor、Claude Code、Windsurf 等），不是独立的应用程序或命令行工具。
 
 **运作机制：**
-- 将开发生命周期解耦为多个独立可调用的阶段，每个阶段通过加载对应的 `SKILL.md` 注入 AI 角色人格（Persona）和执行边界（依据 ADR 0001，Persona 内嵌于 SKILL.md，不单独管理）
+- 将开发生命周期解耦为四个独立可调用的阶段（Requirement Review / Plan / Execute / Review），每个阶段对应一个独立的 `SKILL.md` 文件，由 AI Coding 工具加载执行
+- **阶段间信息传递唯一载体是 Spec 文件**：Requirement Review 产出 Requirement Spec → Plan 读取并产出 Plan Spec → Execute 读取并逐切片实现 → Review 读取并产出 Review Report；禁止跨阶段的口头描述传递
 - 引入实时"统一语言"拦截机制（`CONTEXT.md`），阻止术语混淆向下游传播
 - 双层阶段门控：AI 自审核（6 项检查清单）+ Developer 人工确认
 - 宽进严出的输入路由：基于输入质量动态决定交互模式（Coaching / Mixed / Batch / Fast）
@@ -133,16 +134,34 @@ v2.0 扩展：战略、投注/立项、运维
 
 ## 七、Implementation Decisions
 
-**技术栈：** TypeScript + Node.js，底层封装为纯 TypeScript 模块集，暴露 API 供 CLI 和后续 IDE Plugin 消费，确保核心工作流和 LLM 交互逻辑的跨平台复用。
+**交付形态：本框架不是独立应用程序，而是一套 Skill 规范包。**
 
-**核心模块（MVP 6 个）：**
+核心交付物是一组结构化的 `SKILL.md` 文件，每个文件对应一个开发阶段的完整执行规范（包含角色人格、I/O 契约、门控逻辑、反模式约束）。这些 Skill 文件被加载进用户已有的 AI Coding 插件或 IDE 工具中（如 Cursor Rules、Claude Code Slash Commands、Windsurf Rules 等），复用这些工具的 LLM 调用能力。
 
-1. **工作流状态机引擎（Workflow State Engine）**：管理任务状态在 `.agents/active` 目录下的生命周期，维护 `status.yaml`，执行状态流转安全校验，以及 active/archive 的归档流转
-2. **Skill 加载与解析器（Skill Loader）**：依据 ADR 0001，不单独维护角色层级，直接读取并解析 `SKILL.md`，装载角色人格（Persona）、I/O 契约及门控逻辑
-3. **Context 拦截器（Context Interceptor）**：实时读取 `CONTEXT.md`，在 LLM 生成阶段或输出后处理阶段进行术语规范拦截，并提供交互式 UI 将新术语写入 `CONTEXT.md`（AI 写入，Developer 确认）
-4. **输入分析与路由控制器（Input & Routing Controller）**：多维度评估原始需求输入质量，动态决定触发哪种问答模式（Coaching / Mixed / Batch / Fast），并在前置依赖不满足时拦截并提示
-5. **垂直切片执行追踪器（Slice Tracker）**：读取 Plan Spec 中的切片列表，生成交互式 Checkbox，追踪当前执行的切片，将相关切片的上下文打包传给 LLM
-6. **Spec 模板引擎（Template Engine）**：管理三个阶段的 Spec 模板（Requirement Spec / Plan Spec / Review Report），负责模板渲染、Placeholder 扫描和版本管理
+**阶段间连接方式：** 各阶段之间不依赖任何运行时 API 调用，而是通过 **Spec 文件（Markdown 格式）** 作为唯一信息载体顺序传递：
+
+```
+Requirement Review Skill → [Requirement Spec.md]
+                                      ↓
+                           Plan Skill → [Plan Spec.md]
+                                              ↓
+                                   Execute Skill → 逐切片实现 → [Review Report.md]
+                                                                          ↓
+                                                              Review Skill
+```
+
+**短期（v1.0 MVP）实现策略：** 以纯 Markdown 规范包为主，Skill 文件直接由 FDE 手动安装到客户 IDE 工具的规则目录中，无需编写应用程序代码。框架产物 = Skill 文件 + Spec 模板 + CONTEXT.md 词汇表 + 配套最佳实践手册。
+
+**中期（v1.x）集成策略：** 结合宿主 AI Coding 工具的插件 API（如 VSCode Extension API），将 Skill 加载、Spec 文件管理、状态追踪等能力封装为插件功能，但核心 Skill 逻辑仍以 `SKILL.md` 为单一真相来源。
+
+**核心设计约束（MVP 6 个 Skill 内建能力）：**
+
+1. **工作流状态追踪**：在 `.agents/active` 目录下维护 `status.yaml`，记录当前阶段、当前切片、关键决策，支持跨会话恢复
+2. **Skill 自描述规范**：依据 ADR 0001，每个 `SKILL.md` 自包含角色人格（Persona）、I/O 契约及门控逻辑，不依赖外部角色管理
+3. **统一语言拦截规则**：每个 Skill 内嵌 `CONTEXT.md` 检查指令，在生成阶段拦截术语偏差，新术语写入由 AI 提议、Developer 确认
+4. **输入质量分级路由**：Requirement Review Skill 内置多维度输入评估逻辑，动态选择 Coaching / Mixed / Batch / Fast 交互模式
+5. **垂直切片追踪**：Execute Skill 解析 Plan Spec 中的切片列表，生成可交互 Checkbox，将当前切片上下文精确传递给 LLM
+6. **Spec 模板与扫描**：每个阶段 Skill 内嵌对应 Spec 模板，自动扫描 Placeholder（`TODO`、`TBD`、`??`）并在门控时阻断
 
 ---
 
