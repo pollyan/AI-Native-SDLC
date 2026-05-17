@@ -155,14 +155,15 @@ Requirement Review Skill → [Requirement Spec.md]
 
 **中期（v1.x）集成策略：** 结合宿主 AI Coding 工具的插件 API（如 VSCode Extension API），将 Skill 加载、Spec 文件管理、状态追踪等能力封装为插件功能，但核心 Skill 逻辑仍以 `SKILL.md` 为单一真相来源。
 
-**核心设计约束（MVP 6 个 Skill 内建能力）：**
+**核心设计约束（MVP 7 个 Skill 内建能力）：**
 
 1. **工作流状态追踪**：在 `.agents/active` 目录下维护 `status.yaml`，记录当前阶段、当前切片、关键决策，支持跨会话恢复
 2. **Skill 自描述规范**：依据 ADR 0001，每个 `SKILL.md` 自包含角色人格（Persona）、I/O 契约及门控逻辑，不依赖外部角色管理
 3. **统一语言拦截规则**：每个 Skill 内嵌 `CONTEXT.md` 检查指令，在生成阶段拦截术语偏差，新术语写入由 AI 提议、Developer 确认
 4. **输入完整性评估**：Requirement Review Skill 对每次输入做完整性检查，仅针对缺失信息提问，已有信息不重复追问；输入完整则直接进入 Problem Reframing 和 Spec 起草——没有需要用户感知的"模式"切换
-5. **垂直切片追踪**：Execute Skill 解析 Plan Spec 中的切片列表，生成可交互 Checkbox，将当前切片上下文精确传递给 LLM
-6. **Spec 模板与扫描**：每个阶段 Skill 内嵌对应 Spec 模板，自动扫描 Placeholder（`TODO`、`TBD`、`??`）并在门控时阻断
+5. **需求深度质询（Problem Reframing + Scope Decision）**：输入补全后，Requirement Review Skill 必须完成两步质询再产出 Spec：① **Problem Reframing**——主动重诠释"你真正要解决的是什么"，产出 `Original Request` vs `Reframed Understanding` 对比，可挑战用户原始表述 ② **Scope Decision**——输出四种范围决策之一（`Expansion / Selective Expansion / Hold Scope / Reduction`）并说明理由；防止 AI 把需求原样转写为 Spec 的"表演性认同"
+6. **垂直切片追踪**：Execute Skill 解析 Plan Spec 中的切片列表，生成可交互 Checkbox，将当前切片上下文精确传递给 LLM
+7. **Spec 模板与扫描**：每个阶段 Skill 内嵌对应 Spec 模板，自动扫描 Placeholder（`TODO`、`TBD`、`??`）并在门控时阻断
 
 ---
 
@@ -184,7 +185,7 @@ Requirement Review Skill → [Requirement Spec.md]
 | P2-8 | **Execute 前置就绪检查（Pre-Execute Readiness Gate）** | 用户触发 Execute 前，Skill 自动扫描 Plan Spec 完整性：① 所有切片有对应验收标准 ② 无未解决的 `[NEEDS CLARIFICATION]` 标记 ③ 无无测试计划的切片；任一不满足则阻断并给出具体修复提示 | BMAD |
 | P2-9 | **需求强度分级标注（RFC 2119）** | Requirement Spec 模板强制引入需求强度关键词：`SHALL/MUST`（绝对要求）/ `SHOULD`（强烈推荐，有理由可不做需说明）/ `MAY`（真正可选）/ `MUST NOT`（绝对禁止）；Review 阶段可精确判断"必须实现的需求被漏了"vs"建议项没做" | OpenSpec |
 | P2-10 | **阶段切换 Context Hygiene** | 每个阶段 Spec 归档后，Skill 主动触发上下文清洁动作：① 生成下一阶段精简状态摘要（当前决策 + 未解决问题 + 下一步行动）② 提示 Developer 建议开启新会话；防止长链路对话导致 AI 上下文腐败（Context Rot） | OpenSpec + GSD |
-| P2-11 | **需求深度质询协议（Problem Reframing + Scope Decision）** | Requirement Review Skill 产出 Spec 前完成两步质询：① **Problem Reframing**——AI 主动重诠释"你真正要解决的是什么"，产出 `Original Request` vs `Reframed Understanding` 对比 ② **Scope Decision**——输出四种范围决策之一：`Expansion / Selective Expansion / Hold Scope / Reduction` 并说明理由；防止 AI 把需求原样转写为 Spec 的"表演性认同" | GStack |
+| ~~P2-11~~ | ~~**需求深度质询协议（Problem Reframing + Scope Decision）**~~ | ~~已纳入 MVP 内建能力 #5~~ | GStack |
 
 
 
@@ -257,7 +258,7 @@ Requirement Review Skill → [Requirement Spec.md]
 | 技术设计阶段（独立化） | v1.0 | 从 Plan 阶段分离，加入 ADR 记录 |
 | 测试阶段（独立化） | v1.0 | QA 验证 + Eval 评测作为独立阶段 |
 | 上线阶段（preflight） | v1.0 | 发布前检查、回滚预案 |
-| Phase 2 功能（11 项） | v1.1 | Anti-Rationalization、Doubt-Driven、Source-Driven、系统性调试协议、Execute 前置就绪检查、RFC 2119 需求强度分级、阶段切换 Context Hygiene、需求深度质询协议等 |
+| Phase 2 功能（10 项） | v1.1 | Anti-Rationalization、Doubt-Driven、Source-Driven、系统性调试协议、Execute 前置就绪检查、RFC 2119 需求强度分级、阶段切换 Context Hygiene 等 |
 | 模型路由（按阶段动态选模型） | v1.1 | 参见 `specs/framework/AI-Native-SDLC-v0.4.md` §6.8 |
 | Phase 3 功能（14 项） | v1.2 | 三层配置（Absent=Enabled）、persistent_facts、TDD per-cycle checklist、五轴评审（三轴独立 Agent）、Learnings 提取、Health Check、评审接收协议、切片 HITL/AFK 分类、会话交接协议、依赖合法性检查等 |
 | 多 Agent 专家角色体系 | v1.x | MVP 中角色能力内嵌于 Skill 主线（依据 ADR 0001） |
