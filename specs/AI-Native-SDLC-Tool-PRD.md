@@ -44,6 +44,7 @@
 5. **Spec 必须可失败**：规格不应只是建议，而应能成为 AI 不能随便绕过的约束；实现偏离 Spec 时系统能够感知和拦截（来自 SDD 全景分析的最重要洞察）
 6. **宽进严出**：接受任何形式的输入（完整 PRD / Issue / 口头描述），但输出必须通过门控（自审核 + Developer 确认）才能流入下一阶段
 7. **证据先于声明（Evidence Before Claims）**：任何"完成了""通过了"的声明，必须附有刚刚运行过的命令输出作为证据；AI 不得使用"应该能行""看起来对了"等推测性语言；无验证证据的完成声明视为无效输出（来自 Superpowers verification-before-completion）
+8. **目标先于任务（Goal Before Tasks）**：每个阶段和每个切片的执行，必须先明确可量化的目标（Goal），才能生成任务列表；禁止"先列任务再倒推目标"的反模式；无法被验证的目标等于无目标（来自 GSD Goal-Backward 方法论）
 
 ---
 
@@ -177,25 +178,36 @@ Requirement Review Skill → [Requirement Spec.md]
 | P2-2 | **Doubt-Driven Development 协议** | Review 阶段引入对抗性审查：不是"检查对不对"而是"假设它是错的，找出哪里错"，CLAIM → EXTRACT → DOUBT → RECONCILE → STOP 五步闭环 | 行业最佳实践 |
 | P2-3 | **Source-Driven Development** | Execute 阶段编码前必须从官方文档获取并引用来源；来源层级（官方文档 > 官方博客 > Web 标准）；不确定的标记 UNVERIFIED | 行业最佳实践 |
 | P2-4 | **声明式工作流定义（YAML）** | 将工作流从 Markdown 改为 YAML 声明式定义，支持结构化步骤、门控、角色映射、on_reject 行为 | SpecKit + OpenSpec |
-| P2-5 | **Constitution 机制（项目宪法）** | 项目级不可违反约束文件（Always/Never/Ask First），所有 Skill 产出必须通过宪法检查；Plan 阶段新增 Phase -1 门控层：AI 在进入方案设计前，必须先通过宪法合规检查（如"是否超过 3 个模块""是否直接使用框架而非重复封装"），不合规须书面说明理由 | SpecKit |
+| P2-5 | **Constitution 机制（项目宪法）** | 项目级不可违反约束文件（Always/Never/Ask First），所有 Skill 产出必须通过宪法检查；Plan 阶段新增 Phase -1 门控层：AI 在进入方案设计前，必须先通过宪法合规检查，不合规须书面说明理由；配套 **Complexity Tracking 表**：违反约束时必须填写（Violation / Why Needed / Simpler Alternative Rejected Because），让每次"违宪"都有迹可查而非默默绕过 | SpecKit |
 | P2-6 | **编排模式分类文档** | 明确支持和禁止的编排模式（禁止 Persona 调用 Persona，编排权属于用户或工作流定义） | 行业最佳实践 |
-| P2-7 | **系统性调试四阶段协议** | Execute 阶段遭遇 bug 时强制走四阶段：① Root Cause Investigation（先找根因，禁止直接提 fix）→ ② Pattern Analysis（对比可工作代码差异）→ ③ Hypothesis & Test（一次只测一个假设）→ ④ Implementation（修根因不修症状）；关键规则：尝试 3 次修复仍未解决必须停止并质疑架构，不得继续猜测 | Superpowers |
+| P2-7 | **系统性调试四阶段协议** | Execute 阶段遭遇 bug 时强制走四阶段：① Root Cause Investigation → ② Pattern Analysis → ③ Hypothesis & Test → ④ Implementation；关键规则：尝试 3 次修复仍未解决必须停止并质疑架构，不得继续猜测 | Superpowers |
+| P2-8 | **Execute 前置就绪检查（Pre-Execute Readiness Gate）** | 用户触发 Execute 前，Skill 自动扫描 Plan Spec 完整性：① 所有切片有对应验收标准 ② 无未解决的 `[NEEDS CLARIFICATION]` 标记 ③ 无无测试计划的切片；任一不满足则阻断并给出具体修复提示 | BMAD |
+| P2-9 | **需求强度分级标注（RFC 2119）** | Requirement Spec 模板强制引入需求强度关键词：`SHALL/MUST`（绝对要求）/ `SHOULD`（强烈推荐，有理由可不做需说明）/ `MAY`（真正可选）/ `MUST NOT`（绝对禁止）；Review 阶段可精确判断"必须实现的需求被漏了"vs"建议项没做" | OpenSpec |
+| P2-10 | **阶段切换 Context Hygiene** | 每个阶段 Spec 归档后，Skill 主动触发上下文清洁动作：① 生成下一阶段精简状态摘要（当前决策 + 未解决问题 + 下一步行动）② 提示 Developer 建议开启新会话；防止长链路对话导致 AI 上下文腐败（Context Rot） | OpenSpec + GSD |
+| P2-11 | **需求深度质询协议（Problem Reframing + Scope Decision）** | Requirement Review Skill 产出 Spec 前完成两步质询：① **Problem Reframing**——AI 主动重诠释"你真正要解决的是什么"，产出 `Original Request` vs `Reframed Understanding` 对比 ② **Scope Decision**——输出四种范围决策之一：`Expansion / Selective Expansion / Hold Scope / Reduction` 并说明理由；防止 AI 把需求原样转写为 Spec 的"表演性认同" | GStack |
+
+
 
 ### Phase 3：中优先级功能
 
 | # | 功能 | 核心价值 | 借鉴来源 |
 |---|---|---|---|
 | P3-1 | **三层配置合并** | base（框架默认）→ team（项目级）→ user（个人级）三层配置合并，支持标量覆盖和表深度合并 | BMAD |
-| P3-2 | **角色 persistent_facts** | 每个阶段可记住持久事实（技术栈选型、项目约束、用户偏好），跨会话引用 | BMAD |
-| P3-3 | **Incremental Implementation** | Execute 阶段强制增量实现：每切片约 100 行，三种切片策略（垂直切片/合约优先/风险优先），每步实现→测试→验证→提交 | 行业最佳实践 |
+| P3-1 | **三层配置合并** | base（框架默认）→ team（项目级）→ user（个人级）三层配置合并，支持标量覆盖和表深度合并；默认策略采用"Absent = Enabled"——最佳实践门控默认开启，team/user 配置层可显式关闭，降低认知负荷 | BMAD + GSD |
+| P3-2 | **角色 persistent_facts** | 每个阶段可记住持久事实（技术栈选型、项目约束、用户偏好），跨会话引用；支持文件引用（`persistent_facts: [path/to/tech-stack.md]`）和 glob 路径 | BMAD |
+| P3-3 | **Incremental Implementation + TDD per-cycle checklist** | Execute 阶段强制增量实现：每切片约 100 行，每步实现→测试→验证→提交；每个 TDD 小循环附强制 checklist：① 测试描述行为而非实现 ② 只使用公共接口 ③ 最小通过实现（无投机功能）④ YAGNI 检查通过 ⑤ 测试能承受重构 | 行业最佳实践 + Matt Pocock |
 | P3-4 | **Context Engineering** | 明确定义每阶段上下文加载层级：规则文件 > Spec/架构文档 > 相关源码 > 错误输出 > 对话历史；信任分级（可信/需验证/不可信） | 行业最佳实践 |
-| P3-5 | **五轴代码评审** | Review 阶段覆盖 5 个维度：正确性、可读性、架构、安全、性能，每个发现标记严重级别（Critical/Important/Minor） | 行业最佳实践 |
-| P3-6 | **多维度评审视角** | Full 流程 Review 阶段可选启用：产品视角（CEO review）、设计视角、工程视角、开发者体验视角 | gstack |
+| P3-5 | **五轴代码评审（三轴独立 Agent 架构）** | Review 阶段三轴审查（代码质量轴 / 需求一致性轴 / 验收标准轴）必须由三个上下文互不共享的独立 Agent 并行执行——防止第一轴结论污染第二轴判断；每轴覆盖 5 个维度（正确性、可读性、架构、安全、性能），每个发现标记 Critical/Important/Minor 并附 file:line 定位 | 行业最佳实践 + Matt Pocock + Superpowers |
+| P3-6 | **多维度评审视角** | Full 流程 Review 阶段可选启用：产品视角（CEO review）、设计视角、工程视角、开发者体验视角 | GStack |
 | P3-7 | **Idea Refine 结构化发想** | Requirement Review 前置的发散→收敛→聚焦三阶段流程，7 种发想透镜（逆向、约束移除、受众转换等） | 行业最佳实践 |
 | P3-8 | **自适应检查点** | 检查点数量根据任务复杂度动态调整：简单任务 0 个，中等 1 个，复杂全量，取代固定门控 | specs.md |
 | P3-9 | **结构化 Learnings 提取** | 每个阶段结束时自动从阶段制品中提取 4 类制度记忆：Decisions（技术决策及理由）/ Lessons（执行中才发现的教训）/ Patterns（可复用的实现模式）/ Surprises（出乎预料的发现）；每条记录附 Source 归因；可 hook 到外部 MCP 知识库，否则降级为本地 LEARNINGS.md | GSD |
 | P3-10 | **工作流健康检查（/sdlc:health）** | 提供三级状态诊断（HEALTHY / DEGRADED / BROKEN），含具名错误码体系、自动修复（--repair）和 Context 利用率检测（--context），帮助发现状态不一致、孤立制品、context 超限等问题 | GSD |
 | P3-11 | **评审接收协议** | Review 阶段 AI 接收评审意见时，外部评审建议视为"待验证"而非命令：先 grep 代码库确认是否真的被使用（YAGNI 检查）→ 不清楚的条目必须全部澄清后才开始实现 → 实现前独立验证技术正确性；禁止表演性认同回应 | Superpowers |
+| P3-12 | **切片执行模式分类（HITL/AFK）** | Plan Spec 的每个切片标注 `execution_mode: HITL | AFK`：HITL（Human-in-the-Loop）需要 Developer 介入确认；AFK（Away From Keyboard）可无监督自动执行并优先排序；Slice Tracker 可基于此过滤"可批量运行的切片"，让 Developer 把精力集中在真正需要决策的环节 | Matt Pocock |
+| P3-13 | **会话交接协议（Session Handoff）** | 上下文接近 50% 警戒线时，Skill 主动生成结构化 handoff 摘要（当前切片进度 + 关键决策 + 未解决问题 + 下一步行动），格式与 `status.yaml` 互补；新会话加载 handoff 文件后立刻知道当前状态，无需回放历史；防止 AI 降智期间产生架构漂移 | Matt Pocock + GSD |
+| P3-14 | **依赖合法性检查（Dependency Legitimacy Gate）** | Execute 阶段切片执行前，对 Plan 中新引入的依赖包（npm/pip 等）进行基础合法性验证：包名是否存在于官方注册表、版本是否真实存在；不确定的自动标记 `[UNVERIFIED]` 并阻断执行，要求 Developer 确认后才继续；抵御 AI 幻觉引入不存在依赖（Slopsquatting）的风险 | GSD |
+
 
 ### Phase 4+：长期规划
 
@@ -245,9 +257,9 @@ Requirement Review Skill → [Requirement Spec.md]
 | 技术设计阶段（独立化） | v1.0 | 从 Plan 阶段分离，加入 ADR 记录 |
 | 测试阶段（独立化） | v1.0 | QA 验证 + Eval 评测作为独立阶段 |
 | 上线阶段（preflight） | v1.0 | 发布前检查、回滚预案 |
-| Phase 2 功能（7 项） | v1.1 | Anti-Rationalization、Doubt-Driven、Source-Driven、系统性调试协议等 |
+| Phase 2 功能（11 项） | v1.1 | Anti-Rationalization、Doubt-Driven、Source-Driven、系统性调试协议、Execute 前置就绪检查、RFC 2119 需求强度分级、阶段切换 Context Hygiene、需求深度质询协议等 |
 | 模型路由（按阶段动态选模型） | v1.1 | 参见 `specs/framework/AI-Native-SDLC-v0.4.md` §6.8 |
-| Phase 3 功能（11 项） | v1.2 | 三层配置、persistent_facts、五轴评审、Learnings 提取、Health Check、评审接收协议等 |
+| Phase 3 功能（14 项） | v1.2 | 三层配置（Absent=Enabled）、persistent_facts、TDD per-cycle checklist、五轴评审（三轴独立 Agent）、Learnings 提取、Health Check、评审接收协议、切片 HITL/AFK 分类、会话交接协议、依赖合法性检查等 |
 | 多 Agent 专家角色体系 | v1.x | MVP 中角色能力内嵌于 Skill 主线（依据 ADR 0001） |
 | Review 阶段自动修复闭环 | v1.x | MVP 只抛修复建议，由 Developer 决定采纳 |
 | 战略/投注/立项阶段 | v2.0 | 完整产研链路前端覆盖 |
