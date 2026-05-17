@@ -1,0 +1,615 @@
+# Requirement Review 参考实现调研
+
+> 调研日期：2026-05-17
+> 调研目标：为设计 requirement-review.skill 提供代码级参考
+
+---
+
+## 一、各项目 Requirement Review 实现
+
+### 1.1 gstack (Garry Tan)
+
+**相关文件：**
+- `office-hours/SKILL.md` — 核心需求澄清 Skill（~2000 行）
+- `autoplan/SKILL.md` — 自动化审查流水线
+- `plan-ceo-review/SKILL.md` — CEO 视角计划审查
+- `plan-eng-review/SKILL.md` — 工程视角计划审查
+- `openclaw/skills/gstack-openclaw-office-hours/SKILL.md` — OpenClaw 适配版
+
+**核心职责：**
+gstack 的 `office-hours` 是一个完整的「产品想法到设计文档」的交互式工作流。它不是代码审查工具，而是在任何代码编写之前，先对产品想法进行严苛诊断。两种模式：
+- **Startup Mode（创业模式）**：六道强制性问题逼迫创始人暴露需求真相
+- **Builder Mode（构建者模式）**：设计思维协作头脑风暴，帮助找到最酷的版本
+
+**AI 提示词技巧：**
+1. **Six Forcing Questions（六道强制问题）**——核心创新点：
+   - Q1 Demand Reality：需求证据是什么（不是兴趣，是行为）
+   - Q2 Status Quo：用户现在怎么解决这个问题的
+   - Q3 Desperate Specificity：说出具体的人名、职位、后果
+   - Q4 Narrowest Wedge：最小可付费版本是什么
+   - Q5 Observation & Surprise：你有没有实际观察用户使用
+   - Q6 Future-Fit：世界变了你的产品更还是更不重要
+
+2. **Pushback Patterns（反驳模式）**——五种具体的话术模式：
+   - 模糊市场 → 逼迫具体化
+   - 社交证明 → 需求测试（"喜欢是免费的"）
+   - 平台愿景 → 楔子挑战
+   - 增长统计 → 愿景测试
+   - 未定义术语 → 精确度要求
+
+3. **Anti-Sycophancy Rules（反谄媚规则）**：
+   - 禁止说 "That's an interesting approach"
+   - 禁止说 "You might want to consider..."
+   - 必须对每个回答表态并说明什么证据会改变你的立场
+
+4. **Smart Routing（智能路由）**：根据产品阶段选择问题子集
+   - Pre-product → Q1, Q2, Q3
+   - Has users → Q2, Q4, Q5
+   - Has paying customers → Q4, Q5, Q6
+
+5. **Premise Challenge（前提挑战）**：在提出方案前，先列出用户必须同意的前提声明
+
+6. **Cross-Model Second Opinion（跨模型第二意见）**：可选的 Codex 或 Claude 子代理独立审查
+
+7. **Alternatives Generation（强制方案生成）**：必须产出 2-3 个不同方案，包含最小可行、理想架构、创造性方案
+
+**输入 / 输出：**
+- 输入：用户的产品想法描述 + 项目代码库上下文
+- 输出：设计文档（`~/.gstack/projects/$SLUG/*-design-*.md`），包含问题诊断、前提、方案对比、推荐方案
+
+**关键设计点：**
+- HARD GATE：在用户确认设计方案前，禁止写任何代码
+- Escape hatch：用户可以说"跳过"，但 Skill 会争取再问两个最关键的问题
+- Boil the Lake 原则：AI 让完整性变得廉价，推荐完整的湖泊而非重写的大海
+- Builder Profile：跨会话追踪用户的构建者信号
+
+---
+
+### 1.2 superpowers (obra)
+
+**相关文件：**
+- `skills/brainstorming/SKILL.md` — 核心头脑风暴/需求澄清 Skill
+- `skills/brainstorming/spec-document-reviewer-prompt.md` — Spec 审查子代理提示词
+- `skills/writing-plans/SKILL.md` — 计划编写（含 Scope Check）
+- `skills/subagent-driven-development/spec-reviewer-prompt.md` — Spec 合规审查提示词
+
+**核心职责：**
+superpowers 的 `brainstorming` 是一个结构化的「想法到设计文档」工作流。强制在任何创造性工作之前执行，通过一步步的对话澄清需求、探索方案、产出规格文档。
+
+**AI 提示词技巧：**
+1. **HARD GATE**：`<HARD-GATE>Do NOT invoke any implementation skill, write any code, scaffold any project, or take any implementation action until you have presented a design and the user has approved it.</HARD-GATE>`
+
+2. **Anti-Pattern: "This Is Too Simple To Need A Design"**：明确指出，"简单"项目恰恰是未检查假设导致最多浪费的地方
+
+3. **One Question at a Time（每次一个问题）**：不一次问多个问题，逐步深入
+
+4. **Scope Check**：如果 spec 涵盖多个独立子系统，先建议分解
+
+5. **2-3 Approaches（2-3 个方案）**：始终提出 2-3 个带 trade-off 的方案
+
+6. **Spec Self-Review（规格自审）**：
+   - Placeholder 扫描：查找 TBD、TODO、不完整的章节
+   - 内部一致性：章节之间是否有矛盾
+   - 范围检查：是否聚焦到单个实现计划
+   - 歧义检查：任何需求是否可以有两种解读
+
+7. **User Review Gate（用户审查门）**：Spec 写完后，必须让用户审查后才进入实施计划
+
+**输入 / 输出：**
+- 输入：用户的想法描述 + 项目上下文
+- 输出：设计文档（`docs/superpowers/specs/YYYY-MM-DD-<topic>-design.md`），然后自动调用 writing-plans Skill
+
+**关键设计点：**
+- 终态是调用 writing-plans，不是直接实施
+- 设计关注隔离和清晰度：小单元、单一职责、定义良好的接口
+- YAGNI 原则：从所有设计中移除不必要的功能
+- 流程图式的执行保证：有明确的 checklist 和流程
+
+---
+
+### 1.3 gsd (Get Shit Done)
+
+**相关文件：**
+- `get-shit-done/workflows/spec-phase.md` — 核心 Spec Phase 工作流
+- `get-shit-done/templates/spec.md` — SPEC 模板
+- `get-shit-done/templates/verification-report.md` — 验证报告模板
+
+**核心职责：**
+gsd 的 `spec-phase` 是一个通过苏格拉底式访谈循环来澄清「一个阶段交付什么」的工作流。它使用量化的歧义评分来决定何时需求足够清晰。
+
+**AI 提示词技巧：**
+1. **Ambiguity Model（歧义模型）**——核心创新：
+   - 4 个维度，每个有权重和最低分：
+     - Goal Clarity (35%, min 0.75)
+     - Boundary Clarity (25%, min 0.70)
+     - Constraint Clarity (20%, min 0.65)
+     - Acceptance Criteria (20%, min 0.70)
+   - 歧义分 = 1.0 − 加权总分
+   - 门控：歧义 ≤ 0.20 且所有维度达标
+
+2. **Interview Perspectives（访谈视角轮换）**：
+   - Researcher（研究）：扎根于当前现实
+   - Simplifier（简化者）：暴露最小可行范围
+   - Boundary Keeper（边界守卫）：锁定边界
+   - Failure Analyst（失败分析）：发现使需求无效的边界条件
+   - Seed Closer（闭合者）：锁定剩余未决项
+
+3. **Falsifiable Requirements（可证伪需求）**——核心原则：
+   - 每个需求必须有：Current State / Target State / Acceptance Criterion
+   - 拒绝模糊需求："系统应该快" ✗ → "API 在 100 并发下 p95 响应 < 200ms" ✓
+
+4. **Auto Mode（自动模式）**：可以自动选择推荐选项，跳过交互
+
+**输入 / 输出：**
+- 输入：ROADMAP.md 中的阶段定义 + 项目代码库上下文
+- 输出：SPEC.md（可证伪需求 + 明确边界 + 通过/失败验收标准）
+
+**关键设计点：**
+- 最多 6 轮访谈，每轮 2-3 个问题
+- 先侦察代码库，再问问题——确保问题扎根于现实
+- SPEC.md 是单向门：discuss-phase 把需求视为已锁定
+- Verification Report 是独立的验证步骤，检查需求是否被满足
+
+---
+
+### 1.4 spec-kit (GitHub)
+
+**相关文件：**
+- `templates/commands/specify.md` — Spec 创建命令
+- `templates/spec-template.md` — Spec 模板
+- `templates/constitution-template.md` — 项目宪法模板
+- `presets/lean/commands/speckit.constitution.md` — 宪法命令
+
+**核心职责：**
+spec-kit 的 `specify` 命令从自然语言描述自动生成功能规格。它的核心创新是 Constitution 机制——项目级的不容协商原则，所有 spec 必须遵守。
+
+**AI 提示词技巧：**
+1. **Constitution（宪法）机制**：项目级的核心原则，所有规格必须遵守
+   - 示例：Library-First、CLI Interface、Test-First (NON-NEGOTIABLE)、Observability
+
+2. **Needs Clarification 标记**：最多 3 个 `[NEEDS CLARIFICATION]` 标记
+   - 仅在以下情况使用：显著影响范围/用户体验、多种合理解读、没有合理默认值
+   - 优先级：范围 > 安全/隐私 > 用户体验 > 技术细节
+
+3. **Specification Quality Validation（规格质量验证）**：
+   - 内容质量：无实现细节、面向用户价值、非技术干系人可读
+   - 需求完整性：无可澄清标记、需求可测试、成功标准可度量
+   - 功能就绪：所有功能需求有验收标准、用户场景覆盖主流程
+
+4. **User Story 优先级**：每个 User Story 独立可测试，按 P1/P2/P3 排序
+
+5. **Extension Hooks**：可扩展的前后置钩子
+
+**输入 / 输出：**
+- 输入：自然语言功能描述
+- 输出：结构化 spec 文档（`specs/NNN-short-name/spec.md`）+ 质量检查清单
+
+**关键设计点：**
+- 关注 WHAT 和 WHY，不涉及 HOW
+- 对不确定的部分用合理默认值，而非大量提问
+- 验证循环：最多 3 次迭代修复质量问题
+- Constitution 是跨所有 spec 的约束框架
+
+---
+
+### 1.5 openspec (Fission-AI)
+
+**相关文件：**
+- `schemas/spec-driven/templates/proposal.md` — 提案模板
+- `schemas/spec-driven/templates/spec.md` — 增量规格模板
+- `schemas/spec-driven/templates/design.md` — 设计模板
+- `schemas/spec-driven/templates/tasks.md` — 任务模板
+
+**核心职责：**
+openspec 采用 **Delta Spec（增量规范）** 模式。每个变更以 Proposal 开始，然后产出增量 Spec（只记录新增/修改的需求）。这是与前面所有项目最大的区别。
+
+**AI 提示词技巧：**
+1. **Delta Spec（增量规范）**：只记录变更，不重复已有内容
+   - ADDED Requirements：新增的需求
+   - Scenario 格式：WHEN condition → THEN expected outcome
+
+2. **Proposal 驱动**：每个变更从 Why → What Changes → Capabilities → Impact 四个维度描述
+
+3. **分层制品**：Proposal → Spec → Design → Tasks，逐步细化
+
+**输入 / 输出：**
+- 输入：变更提案
+- 输出：增量 spec 文件（`specs/<name>/spec.md`）
+
+**关键设计点：**
+- 适合已有系统的增量开发，而非从零开始
+- Proposal 模板精简但强制回答 "Why" 和 "Impact"
+- Spec 格式极简：只有 ADDED Requirements + Scenario
+- 支持 change 级别的组织和管理
+
+---
+
+### 1.6 bmad (BMAD Method)
+
+**相关文件：**
+- `src/bmm-skills/1-analysis/bmad-product-brief/SKILL.md` — 产品简报 Skill
+- `src/bmm-skills/1-analysis/bmad-product-brief/assets/brief-template.md` — 简报模板
+- `src/core-skills/bmad-advanced-elicitation/SKILL.md` — 高级引导 Skill
+- `src/core-skills/bmad-review-adversarial-general/SKILL.md` — 对抗性审查
+- `src/core-skills/bmad-review-edge-case-hunter/SKILL.md` — 边界用例猎手
+- `src/bmm-skills/3-solutioning/bmad-check-implementation-readiness/SKILL.md` — 实施就绪检查
+
+**核心职责：**
+bmad 提供了最完整的分阶段方法论：
+- **Phase 1 (Analysis)**：Product Brief → 需求澄清
+- **Phase 2 (Plan)**：UX Design → 用户体验设计
+- **Phase 3 (Solutioning)**：Architecture → 实施就绪检查
+- **Phase 4 (Implementation)**：开发、审查、调查
+
+Product Brief Skill 是需求澄清的核心，通过教练式对话帮助用户产出「诚实的、适合规模的」产品简报。
+
+**AI 提示词技巧：**
+1. **Coach, Don't Quiz（教练而非考试）**：不让用户感到被审问，而是通过对话自然引出信息
+
+2. **Discovery（发现阶段）**：
+   - 先邀请"brain dump"并要求源材料
+   - 读取已有材料，只问缺失的
+   - 获取利益相关度（热情项目 vs 内部提案 vs 投资者输入）来校准推力
+   - 两种路径：Fast path（批处理 + ASSUMPTION 标记）vs Coaching path（逐步引导）
+
+3. **Advanced Elicitation（高级引导）**：
+   - 从 methods.csv 动态选择引导方法（Socratic、First Principles、Pre-mortem、Red Team 等）
+   - 每次展示 5 个方法供用户选择
+   - 支持多代理 Party Mode
+
+4. **Adversarial Review（对抗性审查）**：
+   - "内容是由一个不知名的家伙提交的，你期望找到问题"
+   - 必须找到至少 10 个问题
+
+5. **Implementation Readiness（实施就绪检查）**：
+   - 6 步工作流：文档发现 → PRD 分析 → Epic 覆盖验证 → UX 对齐 → Epic 质量审查 → 最终评估
+   - 提取所有 FR 和 NFR，验证 Epic 是否覆盖
+
+6. **Right-size to purpose（按目的调整规模）**：热情项目不需要投资者级别的严谨
+
+**输入 / 输出：**
+- 输入：用户的产品想法 + 可选的源材料（备忘录、演示文稿、转录等）
+- 输出：Product Brief（`brief.md`）+ Addendum（`addendum.md`）+ Decision Log（`.decision-log.md`）
+
+**关键设计点：**
+- Decision Log 是规范的审计轨迹
+- Addendum 保存不适合放入 Brief 但有价值的细节
+- 支持跨会话恢复
+- Headless Mode：无交互模式，用 JSON 状态报告
+- External Handoffs：可路由到 Confluence、Notion 等
+
+---
+
+### 1.7 agent-skills (Anthropic)
+
+**相关文件：**
+- `computer-use-best-practices/.claude/skills/first-run/SKILL.md` — 首次运行 Skill
+- 项目主要是各种代理示例（customer-support、autonomous-coding、financial-data-analyst 等）
+
+**核心职责：**
+agent-skills 项目没有专门的"需求评审"Skill。它提供的是各种代理的参考实现。与需求评审最相关的设计理念是 autonomous-coding 中的规划提示词。
+
+**AI 提示词技巧：**
+- 自主编码提示词强调：先理解需求，再规划，再执行
+- 初始化器提示词负责设置上下文和约束
+
+**输入 / 输出：**
+- 无专门的需求评审流程
+- 自主编码流程包含隐含的需求理解步骤
+
+**关键设计点：**
+- 作为官方示例集合，它提供了代理架构的参考
+- 对需求评审的直接参考价值较低
+
+---
+
+### 1.8 matt-pocock-skills
+
+**相关文件：**
+- `skills/engineering/to-prd/SKILL.md` — PRD 生成 Skill
+- `skills/engineering/grill-with-docs/SKILL.md` — 基于文档的拷问式审查
+- `skills/productivity/grill-me/SKILL.md` — 拷问式面试
+- `skills/engineering/triage/SKILL.md` — Issue 分流
+
+**核心职责：**
+matt-pocock-skills 提供了两个与需求评审高度相关的 Skill：
+
+1. **to-prd**：从当前对话上下文直接合成 PRD，不需要面试用户
+2. **grill-with-docs**：基于项目文档（CONTEXT.md + ADR）的拷问式审查，更新领域模型
+
+**AI 提示词技巧：**
+1. **grill-with-docs（拷问式审查）**——核心创新：
+   - 基于 CONTEXT.md 的领域词汇表挑战术语冲突
+   - 锐化模糊语言：当用户说"账户"时，问"你指的是 Customer 还是 User？"
+   - 讨论具体场景：发明边界条件场景来测试概念
+   - 交叉引用代码：检查代码是否与用户说法一致
+   - 即时更新 CONTEXT.md：不等批次，立即捕获
+   - ADR 只在三个条件都满足时才创建（难逆转、缺少上下文会令人困惑、真正的权衡结果）
+
+2. **to-prd（PRD 生成）**：
+   - 不面试用户，直接从已有上下文合成
+   - PRD 模板包含：Problem Statement / Solution / User Stories / Implementation Decisions / Testing Decisions / Out of Scope
+
+3. **grill-me（拷问我）**：极简的拷问式面试 Skill，逐个问题逼迫用户澄清
+
+**输入 / 输出：**
+- grill-with-docs：项目文档 + 用户的设计想法 → 更新的 CONTEXT.md + ADR
+- to-prd：对话上下文 + 代码库 → PRD 文档
+
+**关键设计点：**
+- CONTEXT.md 是纯领域词汇表，不含实现细节
+- ADR 创建条件严格，避免文档膨胀
+- 拷问式方法适合有经验的团队深度讨论
+
+---
+
+## 二、Spec 模板字段设计对比
+
+| 项目 | 模板文件 | 字段列表 | 必填字段 | 特色字段 |
+|------|---------|---------|---------|---------|
+| **gstack** | 无固定模板，设计文档自由格式 | Problem、Six Forcing Questions、Premises、Alternatives | Problem Statement、Premises | Six Forcing Questions 诊断结果、Founder Signal Synthesis、Builder Profile |
+| **superpowers** | `docs/superpowers/specs/` 自由格式 | Purpose、Constraints、Success Criteria、Architecture、Components | Purpose、Architecture | Spec Self-Review Checklist、YAGNI 审查 |
+| **gsd** | `templates/spec.md` | Goal、Background、Requirements (Current/Target/Acceptance)、Boundaries、Constraints、Acceptance Criteria、Ambiguity Report、Interview Log | Goal、Requirements、Boundaries、Acceptance Criteria | Ambiguity Score（量化）、Current/Target/Acceptance 三元组 |
+| **spec-kit** | `templates/spec-template.md` | User Scenarios (P1/P2/P3)、Requirements (FR-NNN)、Key Entities、Success Criteria、Assumptions | User Scenarios、Requirements、Success Criteria | Constitution 约束、NEEDS CLARIFICATION 标记（≤3）、Quality Checklist |
+| **openspec** | `templates/proposal.md` + `templates/spec.md` | Why、What Changes、Capabilities (New/Modified)、Impact、ADDED Requirements、Scenarios (WHEN/THEN) | Why、What Changes | Delta Spec（增量）、Capability 映射 |
+| **bmad** | `brief-template.md` | Executive Summary、Problem、Solution、What Makes This Different、Who This Serves、Success Criteria、Scope、Vision | Executive Summary、Problem、Solution | Decision Log、Addendum、Right-size to purpose |
+| **matt-pocock** | to-prd 内嵌模板 | Problem Statement、Solution、User Stories、Implementation Decisions、Testing Decisions、Out of Scope | Problem Statement、Solution、User Stories | CONTEXT.md 领域词汇表、ADR 条件化创建 |
+
+---
+
+## 三、门控机制对比
+
+| 项目 | 门控条件 | 验证方式 | 失败处理 |
+|------|---------|---------|---------|
+| **gstack** | 用户对 Premises 的逐条同意 + Alternatives 选择 | AskUserQuestion 确认每个前提 | 用户反对前提 → 修订理解并回环 |
+| **gstack/autoplan** | 6 个决策原则自动判断 | Mechanical（自动）/ Taste（表面化）/ User Challenge（必须用户决定） | Mechanical 自动选，Taste 在最终门控呈现 |
+| **superpowers** | HARD GATE（无设计批准 = 禁止实施）+ Spec Self-Review + User Review Gate | Checklist 验证（Placeholder、Consistency、Scope、Ambiguity） | 修复 inline，最多 3 次迭代 |
+| **gsd** | Ambiguity Score ≤ 0.20 且所有维度达标 | 4 维度量化评分（Goal 35%, Boundary 25%, Constraint 20%, Acceptance 20%） | 6 轮访谈未通过 → 可选强制写入并标记 ⚠ |
+| **spec-kit** | Quality Checklist 全部通过 | 内容质量 + 需求完整性 + 功能就绪 3 类检查 | 最多 3 次迭代修复，[NEEDS CLARIFICATION] 交互澄清（≤3） |
+| **openspec** | 无显式门控 | Proposal 结构隐含验证（Why 必须有内容） | 无显式失败处理 |
+| **bmad** | Product Brief 自身是 Phase 1 的输出；Implementation Readiness 是 Phase 3→4 的门控 | 6 步验证：文档发现 → PRD 分析 → Epic 覆盖 → UX 对齐 → Epic 质量 → 最终评估 | 生成 Gap Report + Fix Plans |
+| **matt-pocock** | 隐含门控：to-prd 的模块检查 | 用户确认模块划分 | 修改模块直到用户满意 |
+
+---
+
+## 四、关键设计洞察汇总
+
+### 4.1 Six Forcing Questions（gstack）
+
+**核心价值：** 把"想法验证"变成结构化的逼迫过程。
+
+**可借鉴点：**
+- 不是问"你觉得怎么样"，而是问"说出一个具体名字、一个具体后果"
+- 智能路由：不需要每次都问完所有问题，根据阶段选择子集
+- Escape hatch：尊重用户时间，但争取多问两个关键问题
+- 反谄媚规则：AI 不能说 "interesting"，必须表态
+
+**适配建议：** 将六道问题改编为适合企业开发团队的版本：
+- Q1：谁是真正的用户？他们现在用什么替代方案？
+- Q2：如果不做这个功能，会怎样？
+- Q3：最小可用的版本是什么？
+- Q4：你怎么知道做完了？验收标准是什么？
+- Q5：什么边界情况会破坏这个功能？
+- Q6：这个需求和其他正在做的/已做的有什么依赖？
+
+### 4.2 Scope Check & Spec Self-Review（superpowers）
+
+**核心价值：** 确保规格文档本身的质量，而不仅仅是产出文档。
+
+**可借鉴点：**
+- "This Is Too Simple To Need A Design" 反模式——简单项目恰恰最需要检查假设
+- Spec Self-Review 四维检查：Placeholder / Consistency / Scope / Ambiguity
+- 每次只问一个问题，避免用户认知过载
+- 2-3 个方案 + trade-off 分析是必须的
+
+### 4.3 Constitution 机制（spec-kit）
+
+**核心价值：** 项目级约束框架，所有 spec 自动遵守。
+
+**可借鉴点：**
+- Constitution 定义了"不容协商的原则"
+- 例如：Library-First、Test-First、Observability
+- 所有下游 spec 必须通过 Constitution 合规检查
+- 可以作为企业团队"编码规范"的 AI 版本
+
+### 4.4 Ambiguity Scoring（gsd）
+
+**核心价值：** 把"需求清晰度"量化为可测量的数字。
+
+**可借鉴点：**
+- 4 维度加权评分，有明确的最低分和门控阈值
+- 访谈视角轮换：Researcher → Simplifier → Boundary Keeper → Failure Analyst → Seed Closer
+- 每轮更新分数，可视化进度
+- 门控不通过可以强制写入，但标记未达标维度
+
+### 4.5 Product Brief 工作流（bmad）
+
+**核心价值：** 教练式而非考试式的需求引导。
+
+**可借鉴点：**
+- "Make them sweat when assumptions are unexamined, ease as the brief firms up"
+- 两种路径：Fast path（批处理 + ASSUMPTION 标记）vs Coaching path（逐步引导）
+- Decision Log 作为审计轨迹
+- Right-size to purpose：热情项目不需要投资者级严谨
+- Addendum 保存不适合 Brief 但有价值的细节
+
+### 4.6 Delta Spec（openspec）
+
+**核心价值：** 增量式需求管理，只记录变更。
+
+**可借鉴点：**
+- 适合已有系统的增量开发
+- Proposal 的 Why → What Changes → Capabilities → Impact 四段式结构
+- WHEN/THEN 格式的场景描述简洁有效
+
+### 4.7 Adversarial Review（bmad）
+
+**核心价值：** 用"愤世嫉俗的审查者"角色发现需求中的问题。
+
+**可借鉴点：**
+- "内容是由一个不知名的家伙提交的，你期望找到问题"
+- 必须找到至少 10 个问题
+- Edge Case Hunter：纯路径枚举，机械地遍历每个分支
+- 两个审查正交互补：对抗性审查（态度驱动）+ 边界用例猎手（方法驱动）
+
+### 4.8 Grill-with-Docs（matt-pocock）
+
+**核心价值：** 基于已有文档体系的需求拷问。
+
+**可借鉴点：**
+- 术语冲突检测：用户用词与已有词汇表不一致时立即指出
+- 模糊语言锐化：当用户说"账户"时，问"Customer 还是 User？"
+- 代码交叉验证：检查代码是否与用户说法一致
+- ADR 条件化创建：只在真正需要时才产生文档
+
+### 4.9 Cross-Model Second Opinion（gstack）
+
+**核心价值：** 利用不同 AI 模型的独立性获得第二意见。
+
+**可借鉴点：**
+- 结构化上下文摘要传给独立模型
+- 两种输出：Steelman 版本 / 挑战一个前提 / 48 小时原型建议
+- 跨模型综合：Claude 在哪里同意/不同意/是否改变推荐
+- 前提修订检查：如果第二意见挑战了已同意的前提，让用户决定
+
+---
+
+## 五、设计建议
+
+基于以上调研，对我们的 `requirement-review.skill` 设计提出以下建议：
+
+### 1. Spec 模板字段建议
+
+**必填字段：**
+- **需求描述**：用户原始需求 + 解读后的清晰陈述
+- **用户与场景**：谁是用户？他们的核心场景是什么？（借鉴 gstack Q3）
+- **现状与痛点**：现在怎么解决的？为什么不够好？（借鉴 gstack Q2）
+- **功能需求**：每个需求有 Current/Target/Acceptance 三元组（借鉴 gsd）
+- **边界定义**：明确 In Scope / Out of Scope（借鉴 gsd）
+- **验收标准**：可证伪的 Pass/Fail 检查项（借鉴 gsd）
+- **假设与约束**：显式记录假设（借鉴 spec-kit）
+
+**可选字段：**
+- **成功指标**：可度量的成功标准（借鉴 spec-kit）
+- **依赖关系**：与其他需求/系统的依赖（借鉴 bmad）
+- **风险识别**：已知风险和缓解措施（借鉴 openspec）
+- **术语表**：关键术语的统一定义（借鉴 matt-pocock）
+
+**特色字段：**
+- **歧义评分**：量化需求清晰度（借鉴 gsd 的 Ambiguity Model）
+- **需求来源**：追溯需求到原始讨论（借鉴 bmad 的 Decision Log）
+- **Constitution 合规**：对团队原则的合规检查（借鉴 spec-kit）
+
+### 2. AI 提示词建议
+
+**借鉴 gstack 的六道问题，改编为企业版：**
+
+阶段 1——需求理解：
+1. **用户画像**："具体谁会用这个功能？说出角色名，不是'用户'"
+2. **现状痛点**："他们现在怎么解决这个问题的？这个替代方案的成本是什么？"
+3. **最小版本**："如果只能做一个功能，做什么？为什么？"
+
+阶段 2——需求验证：
+4. **验收标准**："怎么判断这个需求满足了？给我一个可测试的场景"
+5. **边界条件**："什么情况会破坏这个功能？给出一个具体的失败场景"
+6. **依赖与冲突**："这个需求和已有的什么功能/需求有关联？会不会冲突？"
+
+**借鉴 gstack 的反谄媚规则：**
+- 禁止说"这个需求看起来很合理"
+- 必须对每个需求表态：清晰/模糊/矛盾/缺失
+- 必须指出具体什么证据会改变判断
+
+**借鉴 superpowers 的 Spec Self-Review：**
+- 产出后自动运行四维检查
+- 检查项：Placeholder 扫描、内部一致性、范围聚焦、歧义检测
+
+**借鉴 bmad 的对抗性审查（可选）：**
+- 以"愤世嫉俗的审查者"角色重新审视需求
+- 目标：找到至少 5 个问题
+
+### 3. 门控机制建议
+
+**门控条件：**
+- 所有必填字段完整（无 TBD/TODO）
+- 歧义评分 ≤ 0.20（借鉴 gsd，4 维度加权）
+- 用户逐条确认 Premises（借鉴 gstack）
+- Self-Review 通过（借鉴 superpowers）
+- 所有 [NEEDS CLARIFICATION] 已解决（借鉴 spec-kit，≤3）
+
+**验证方式：**
+- 量化歧义评分（Goal 35%, Boundary 25%, Constraint 20%, Acceptance 20%）
+- 自动 Self-Review：Placeholder / Consistency / Scope / Ambiguity
+- 用户审查门：展示评审报告，等待用户批准
+
+**失败处理：**
+- 歧义超标 → 自动启动补充访谈（借鉴 gsd 的 Interview Perspectives）
+- Self-Review 失败 → 标记问题位置，最多 3 次自动修复
+- 用户拒绝 Premises → 修订该前提，重新评估
+
+### 4. 工作流建议
+
+**阶段划分（5 阶段）：**
+
+```
+Phase 1: Context Gathering（上下文收集）
+  ├── 读取项目 Constitution（如果存在）
+  ├── 读取相关文档（PRD、API 文档、代码库上下文）
+  └── 识别已有相关需求和决策
+
+Phase 2: Requirement Understanding（需求理解）
+  ├── 苏格拉底式访谈（借鉴 gstack，一次一个问题）
+  ├── 智能路由：根据需求类型选择问题子集
+  └── 歧义评分：实时追踪清晰度进度
+
+Phase 3: Requirement Validation（需求验证）
+  ├── Premise Challenge（借鉴 gstack）
+  ├── Adversarial Review（借鉴 bmad，可选）
+  └── Edge Case Analysis（借鉴 bmad edge-case-hunter，可选）
+
+Phase 4: Requirement Spec Generation（需求规格生成）
+  ├── 按模板生成结构化文档
+  ├── Spec Self-Review（借鉴 superpowers）
+  └── Constitution Compliance Check（借鉴 spec-kit）
+
+Phase 5: User Review Gate（用户审查门）
+  ├── 展示完整评审报告
+  ├── 歧义评分可视化
+  └── 等待用户批准 → 进入下一阶段
+```
+
+**交互方式：**
+- Phase 2 采用苏格拉底式一次一问（借鉴 gstack + superpowers）
+- 支持 Fast Path 和 Coaching Path（借鉴 bmad）
+- 支持 Auto Mode（借鉴 gsd）——自动选择推荐选项，跳过交互
+
+**输出格式：**
+- 需求评审报告（Markdown）
+- 包含：歧义评分、需求清单（FR/NFR）、边界定义、验收标准、假设、风险
+- Decision Log 记录关键决策（借鉴 bmad）
+
+---
+
+## 六、总结
+
+### 各项目独特贡献
+
+| 项目 | 最值得借鉴的设计点 |
+|------|-------------------|
+| gstack | 六道强制问题 + 反谄媚规则 + 跨模型第二意见 |
+| superpowers | Spec Self-Review + HARD GATE + 每次一问 |
+| gsd | 量化歧义评分 + 可证伪需求三元组 + 访谈视角轮换 |
+| spec-kit | Constitution 机制 + [NEEDS CLARIFICATION] 限制 + 质量检查清单 |
+| openspec | Delta Spec（增量规范）+ WHEN/THEN 场景格式 |
+| bmad | 教练式引导 + 对抗性审查 + Decision Log + Right-size |
+| agent-skills | （对需求评审参考价值较低） |
+| matt-pocock | 术语冲突检测 + 代码交叉验证 + 条件化 ADR |
+
+### 设计原则建议
+
+1. **强制执行**：在用户批准需求规格前，禁止进入设计/实施（HARD GATE）
+2. **量化清晰度**：用歧义评分代替主观判断（借鉴 gsd）
+3. **教练而非考试**：引导用户思考，不是审问（借鉴 bmad）
+4. **可证伪需求**：每个需求必须有验收标准（借鉴 gsd）
+5. **宪法约束**：项目级原则自动检查（借鉴 spec-kit）
+6. **对抗性审查**：用不同视角发现盲点（借鉴 gstack + bmad）
+7. **最小交互**：最多 3 个 NEEDS CLARIFICATION，其余用合理默认值（借鉴 spec-kit）
