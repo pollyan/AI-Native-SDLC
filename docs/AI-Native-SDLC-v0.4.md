@@ -1,9 +1,9 @@
 # AI-Native SDLC v0.4 — 规范驱动开发框架设计
 
-> **版本：** v0.4
+> **版本：** v0.4.1
 > **日期：** 2026-05-17
-> **状态：** 设计完成，待评审
-> **变更说明：** 从 v0.3 的"多智能体专家团"演化为"规范驱动开发框架"，以 Spec 文件为统一传递载体、以统一语言为基础设施、以垂直切片驱动执行。
+> **状态：** 设计迭代中
+> **变更说明：** v0.4.1 在 v0.4 基础上加回专家角色维度（§七），采用"工作流驱动 + 角色能力叠加"设计。MVP 不启用独立专家角色，专家作为可选增强层通过配置启用。
 
 ---
 
@@ -531,11 +531,249 @@ _Avoid_: Bill, payment request, 账单
 - `Flagged ambiguities` 记录历史上出现过的术语冲突及解决结果
 - 只包含项目特有的领域术语，不含通用编程概念
 
+### 6.4 活跃/归档分离（借鉴 OpenSpec）
+
+活跃任务和已完成任务用不同目录管理，防止 `.agents/` 下堆积大量历史产出影响当前工作。
+
+```
+.agents/
+├── active/                    # 活跃任务（当前正在进行的）
+│   └── {task-name}/
+│       ├── requirement-spec.md
+│       ├── plan-spec.md
+│       └── status.yaml
+│
+├── archive/                   # 已完成任务（归档）
+│   └── 2026-05-17-{task-name}/
+│       ├── requirement-spec.md
+│       ├── plan-spec.md
+│       └── review-report.md
+│
+├── CONTEXT.md                 # 领域词汇表
+├── config.yaml                # 项目配置
+├── workflows/                 # 工作流定义
+├── roles/                     # 角色定义
+└── log.jsonl                  # 可观测性日志
+```
+
+**任务状态流转：**
+
+```yaml
+# active/{task-name}/status.yaml
+status: plan  # draft → requirement-review → plan → execute → review → done
+stage: plan
+date_started: 2026-05-17
+date_updated: 2026-05-17
+context_budget_used: 0.35
+```
+
+当一个任务完成后：
+1. 状态标记为 `done`
+2. 整个文件夹从 `active/` 移到 `archive/`，加上日期前缀
+3. 关键经验（如果有）沉淀到项目配置
+
+**好处：**
+- `active/` 只有当前在做的任务，一目了然
+- `archive/` 保留完整历史，带日期前缀方便查找
+- 可以同时有多个活跃任务，互不干扰
+
+### 6.5 上下文预算管理（借鉴 GSD）
+
+**核心洞察：AI 编程质量随上下文使用量递减。**
+
+| 上下文使用量 | 质量 | AI 状态 |
+|-------------|------|--------|
+| 0-30% | 最高 | 全面、细致 |
+| 30-50% | 良好 | 自信、扎实 |
+| 50-70% | 下降 | 开始走捷径 |
+| 70%+ | 较差 | 敷衍了事 |
+
+**每个工作阶段应控制在一个合理的上下文预算内。**
+
+**指导原则：**
+
+- 单个阶段建议消耗 < 50% 上下文
+- 如果 Plan 产出超过 30%，建议拆分为多个 Execute 轮次
+- Execute 阶段的每个切片建议 10-30% 上下文
+- 如果对话接近 70%，建议保存产出、归档当前状态、开启新对话继续
+
+**实现方式：** 这不是精确度量（LLM 不暴露实际 token 使用量），而是定性指导信号。AI 角色在执行过程中自我评估上下文消耗，人在对话中观察到质量下降时主动要求拆分。
+
+在 `status.yaml` 中追踪估算值，供跨会话参考。
+
+### 6.6 配置分层
+
+**项目层（随代码库版本控制）定义"团队共识"：**
+
+```yaml
+# .agents/config.yaml
+project:
+  name: "my-project"
+  tech_stack: ["typescript", "react", "node"]
+  code_style: "eslint-config-airbnb"
+
+workflows:
+  active:
+    - feature
+  default: feature
+
+roles:
+  active:
+    - requirement-reviewer
+    - planner
+    - developer
+    - reviewer
+
+gates:
+  plan: required       # Plan 结束后必须人工确认
+  execute: auto         # Execute 结束后可自动流转
+  review: required      # Review 结束后必须人工确认
+```
+
+**个人层（本地，不进入版本控制）定义"个体偏好"：**
+
+```yaml
+# ~/.agents/config.yaml
+preferences:
+  communication_style: concise
+  default_model: sonnet
+  tdd_preferred: true
+```
+
+**核心价值：团队共识和个体偏好解耦。** 项目配置可迁移（换人接手自然继承），个人配置有主权（不随项目传播）。
+
+### 6.7 结构化日志（log.jsonl）
+
+多阶段工作流最大的调试坑是出了问题不知道问题出在哪个环节。最轻量的解决方案：
+
+```jsonl
+{"ts":"2026-05-17T14:30:00+08:00","stage":"requirement-review","action":"spec-created","output":"requirement-spec.md","status":"done","duration_s":180}
+{"ts":"2026-05-17T14:35:00+08:00","stage":"plan","action":"spec-created","output":"plan-spec.md","status":"done","duration_s":300}
+{"ts":"2026-05-17T15:30:00+08:00","stage":"execute","action":"slice-complete","output":"S1","status":"done","duration_s":900}
+{"ts":"2026-05-17T15:50:00+08:00","stage":"review","action":"report-created","output":"review-report.md","status":"issues_found","duration_s":180}
+```
+
+**字段定义：**
+
+| 字段 | 说明 |
+|------|------|
+| `ts` | 时间戳 |
+| `stage` | 当前工作流阶段 |
+| `action` | 具体动作（spec-created / slice-complete / report-created 等） |
+| `output` | 产出的文件或切片 ID |
+| `status` | `done` / `issues_found` / `blocked` / `skipped` |
+| `duration_s` | 耗时（秒） |
+
+**不需要可视化 dashboard，但至少能 `tail -f` 看流转状态。**
+
+### 6.8 模型路由
+
+不同阶段可以运行在不同的 AI 模型上，优化成本和质量：
+
+| 阶段 | 模型倾向 | 原因 |
+|------|---------|------|
+| Requirement Review | 中等推理模型 | 需要理解力和追问能力 |
+| Plan | 强推理模型（Opus 级） | 需要深度思考和多维度权衡 |
+| Execute | 快速编码模型（Sonnet 级） | 吞吐量优先，上下文干净 |
+| Review | 专项模型 | 覆盖率和准确性优先 |
+
+**实现依赖：** 需要底层工具支持模型指定能力。在 `config.yaml` 中配置默认模型映射，Developer 可以在执行时覆盖。
+
 ---
 
-## 七、AI 行为边界
+## 七、专家角色体系
 
-**所有角色的共同约束：**
+### 7.1 设计理念：工作流驱动 + 角色能力叠加
+
+框架采用**双维度设计**：
+
+1. **工作流维度**：四阶段主线（Requirement Review → Plan → Execute → Review），每个阶段有明确的输入、输出、门控
+2. **角色维度**：专家角色在关键节点提供多视角审查，作为可选的增强层
+
+**核心原则：**
+- 工作流主线必须能独立运行（MVP 不依赖专家角色）
+- 专家角色是可选的增强层，通过配置启用
+- 专家角色不改变工作流主线的阶段划分和门控条件
+- 同一个专家角色可以跨阶段复用（如架构师在 Plan 和 Review 都参与）
+
+**竞品参考：**
+- gstack：CEO Review / Eng Review / Design Review — 不同视角的独立审查
+- bmad：PM / Architect / UX Designer / Dev / QA — 完整的专家角色体系
+- gsd：Researcher / Simplifier / Boundary Keeper / Failure Analyst — 访谈视角轮换
+
+### 7.2 专家角色定义
+
+| 角色 | 核心视角 | 参与阶段 | MVP | 未来 |
+|------|---------|---------|-----|------|
+| **产品分析师** | 需求完整性、用户场景覆盖、业务价值 | Requirement Review | ❌ | ✅ v1.1 |
+| **架构师** | 技术可行性、方案合理性、系统影响 | Plan、Review | ❌ | ✅ v1.1 |
+| **测试专家** | 验收标准可测试性、边界条件覆盖、回归风险 | Requirement Review、Review | ❌ | ✅ v1.2 |
+| **代码审查员** | 代码质量、安全、性能 | Review | ❌ | ✅ v1.2 |
+| **DevOps 工程师** | 构建、部署、监控、回滚 | Plan、Review | ❌ | ✅ v1.3 |
+
+### 7.3 MVP 策略
+
+**MVP 阶段不启用独立专家角色。** 原因：
+1. 降低认知负担——Developer 只需要理解工作流主线
+2. 降低实现复杂度——不需要多角色调度和上下文传递
+3. 验证主流程——先确保工作流本身跑通，再加角色
+
+**MVP 中，每个阶段的主流程已经内置了基础的多视角检查：**
+
+| 阶段 | 内置检查（替代独立专家） |
+|------|----------------------|
+| Requirement Review | 自审核 5 项检查（问题定义/范围/验收标准/术语/无 TBD） |
+| Plan | 自审核 6 项检查（方案一致/切片端到端/依赖正确/接口定义/无 TBD/需求覆盖） |
+| Review | 三轴审查（代码质量 + 需求一致性 + 验收标准逐条确认） |
+
+### 7.4 专家角色的启用方式
+
+专家角色通过配置文件启用，不是硬编码在 Skill 里：
+
+```yaml
+# config.yaml（项目级配置）
+experts:
+  # 是否启用专家角色（默认 false）
+  enabled: false
+  
+  # 启用哪些角色
+  roles:
+    - product-analyst    # 产品分析师
+    - architect          # 架构师
+    # - test-expert      # 测试专家（注释掉 = 不启用）
+    # - code-reviewer    # 代码审查员
+    
+  # 每个角色的参与时机
+  triggers:
+    product-analyst:
+      phase: requirement-review
+      point: after-self-review  # 在自审核之后触发
+    architect:
+      phase: [plan, review]
+      point: before-gate  # 在门控之前触发
+```
+
+### 7.5 专家角色的工作方式
+
+专家角色以**审查报告**的形式输出，不直接修改 Spec 文件：
+
+```
+专家角色审查流程：
+1. 读取当前阶段的 Spec 文件
+2. 从专家视角进行分析
+3. 产出审查报告（问题清单 + 建议）
+4. Developer 决定是否采纳建议
+5. 如果采纳，主流程 AI 执行修改
+```
+
+**与竞品的差异：**
+- bmad 的专家是独立的 Agent，有独立的上下文和决策权
+- 我们的专家是**顾问模式**——输出建议，Developer 决定
+- 这符合"人主控"的核心理念
+
+### 7.6 AI 行为边界
+
+**所有角色（主流程 AI + 专家角色）的共同约束：**
 
 1. 使用 Context 文件中的统一术语
 2. 每个阶段产出后执行自审核检查
@@ -712,6 +950,8 @@ v0.4 是在 v0.3 基础上的**重大升级**：
 | Spec 模板 | 无正式模板 | **每个阶段有完整的 Markdown 模板** |
 
 #### 版本历史
+
+| 版本 | 核心变更 | 日期 |
 |------|---------|------|
 | v0.1 | 初始版本，8 专家 + 2 调度的角色驱动架构 | 2026-05-07 |
 | v0.2 | 角色精简为 4 核心，信息流转重定义，自演进简化 | 2026-05-08 |
