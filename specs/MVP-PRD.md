@@ -652,7 +652,7 @@ docs/
 
 | 风险 | 影响 | 缓解措施 |
 |---|---|---|
-| LLM 行为一致性：不同模型对 SKILL.md 指令遵守程度不同 | 门控可能被绕过 | Anti-Patterns 用强硬措辞（"禁止"非"不建议"）；Promptfoo 测试集验证 |
+| LLM 行为一致性：不同模型对 SKILL.md 指令遵守程度不同 | 门控可能被绕过 | Anti-Patterns 用强硬措辞（"禁止"非"不建议"）；通过 FDE 手动回归测试验证（自动化测试集延至 V2） |
 | 上下文长度：长项目 Spec 文件超限 | AI 降智 | Context Loading 章节规定加载优先级，超限主动提示 Developer |
 | FDE 安装门槛：不同 IDE Rules 加载机制不同 | 安装失败 | 安装指南覆盖 3 个工具，含 troubleshooting |
 | 术语漂移：CONTEXT.md 未及时更新 | 下游行为漂移 | 每个 Skill 强制加载；新术语当次会话内写入 |
