@@ -701,15 +701,29 @@ preferences:
 - bmad：PM / Architect / UX Designer / Dev / QA — 完整的专家角色体系
 - gsd：Researcher / Simplifier / Boundary Keeper / Failure Analyst — 访谈视角轮换
 
-### 7.2 专家角色定义
+### 7.2 三种 AI 模式定义
 
-| 角色 | 核心视角 | 参与阶段 | MVP | 未来 |
-|------|---------|---------|-----|------|
-| **产品分析师** | 需求完整性、用户场景覆盖、业务价值 | Requirement Review | ❌ | ✅ v1.1 |
-| **架构师** | 技术可行性、方案合理性、系统影响 | Plan、Review | ❌ | ✅ v1.1 |
-| **测试专家** | 验收标准可测试性、边界条件覆盖、回归风险 | Requirement Review、Review | ❌ | ✅ v1.2 |
-| **代码审查员** | 代码质量、安全、性能 | Review | ❌ | ✅ v1.2 |
-| **DevOps 工程师** | 构建、部署、监控、回滚 | Plan、Review | ❌ | ✅ v1.3 |
+框架定义三种 AI 参与模式，对应工作流的不同阶段：
+
+| 模式 | 职责 | 对应阶段 | 通俗解释 |
+|------|------|---------|----------|
+| **Definer（定义者）** | 理解需求、澄清模糊、定义验收标准 | Requirement Review | "像产品经理和业务分析师一样思考" |
+| **Builder（构建者）** | 方案设计、代码实现、技术决策 | Plan + Execute | "像架构师和开发工程师一样思考" |
+| **Verifier（验证者）** | 质量审查、需求一致性、验收确认 | Review | "像测试工程师和代码审查员一样思考" |
+
+**设计理由：**
+- 不使用传统角色名称（产品经理/架构师/测试），避免客户对号入座
+- 三模式与工作流四阶段自然对齐（定义→构建→验证）
+- 一个 Developer 在不同阶段自动获得不同模式的 AI 辅助
+- 参考了 Meta 的三角色设计（AI Builder + Product + QA）
+
+**启用节奏：**
+
+| 模式 | MVP | v1.1 | v1.2 | v1.3 |
+|------|-----|------|------|------|
+| **Definer** | ❌（主流程内置基础检查） | ✅ 独立启用 | ✅ | ✅ |
+| **Builder** | ❌（主流程内置基础检查） | ✅ 独立启用 | ✅ | ✅ |
+| **Verifier** | ❌（主流程内置三轴审查） | ❌ | ✅ 独立启用 | ✅ |
 
 ### 7.3 MVP 策略
 
@@ -726,41 +740,43 @@ preferences:
 | Plan | 自审核 6 项检查（方案一致/切片端到端/依赖正确/接口定义/无 TBD/需求覆盖） |
 | Review | 三轴审查（代码质量 + 需求一致性 + 验收标准逐条确认） |
 
-### 7.4 专家角色的启用方式
+### 7.4 模式的启用方式
 
-专家角色通过配置文件启用，不是硬编码在 Skill 里：
+模式通过配置文件启用，不是硬编码在 Skill 里：
 
 ```yaml
 # config.yaml（项目级配置）
-experts:
-  # 是否启用专家角色（默认 false）
+ai_modes:
+  # 是否启用独立 AI 模式（默认 false，MVP 只用主流程）
   enabled: false
   
-  # 启用哪些角色
-  roles:
-    - product-analyst    # 产品分析师
-    - architect          # 架构师
-    # - test-expert      # 测试专家（注释掉 = 不启用）
-    # - code-reviewer    # 代码审查员
+  # 启用哪些模式
+  modes:
+    - definer      # 定义者（Requirement Review 阶段）
+    - builder      # 构建者（Plan + Execute 阶段）
+    # - verifier  # 验证者（Review 阶段，v1.2 启用）
     
-  # 每个角色的参与时机
+  # 每个模式的参与时机
   triggers:
-    product-analyst:
+    definer:
       phase: requirement-review
       point: after-self-review  # 在自审核之后触发
-    architect:
-      phase: [plan, review]
+    builder:
+      phase: [plan, execute]
       point: before-gate  # 在门控之前触发
+    verifier:
+      phase: review
+      point: after-self-review
 ```
 
-### 7.5 专家角色的工作方式
+### 7.5 模式的工作方式
 
-专家角色以**审查报告**的形式输出，不直接修改 Spec 文件：
+每种模式以**审查报告**的形式输出，不直接修改 Spec 文件：
 
 ```
-专家角色审查流程：
+模式工作流程：
 1. 读取当前阶段的 Spec 文件
-2. 从专家视角进行分析
+2. 从对应视角进行分析
 3. 产出审查报告（问题清单 + 建议）
 4. Developer 决定是否采纳建议
 5. 如果采纳，主流程 AI 执行修改
@@ -768,7 +784,8 @@ experts:
 
 **与竞品的差异：**
 - bmad 的专家是独立的 Agent，有独立的上下文和决策权
-- 我们的专家是**顾问模式**——输出建议，Developer 决定
+- gstack 的视角审查是硬编码在流程中的
+- 我们的模式是**顾问模式**——输出建议，Developer 决定
 - 这符合"人主控"的核心理念
 
 ### 7.6 AI 行为边界
