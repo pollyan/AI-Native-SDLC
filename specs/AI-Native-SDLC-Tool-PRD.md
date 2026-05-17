@@ -1,6 +1,6 @@
 # PRD: AI-Native SDLC（规范驱动开发引擎）
 
-> 版本：v0.3（全集版）
+> 版本：v0.4（全集版 + 竞品代码分析增补）
 > 日期：2026-05-17
 > 状态：待 to-issues 拆分
 
@@ -40,9 +40,10 @@
 1. **人主控，AI 辅助**：Developer 控制所有阶段切换，AI 可建议但人最终确认；所有 AI 产出（方案推荐、修复建议等）由 Developer 决定是否采纳
 2. **Spec 是阶段间唯一传递载体**：每个阶段的产出都是一份 Spec 文件，既是下一阶段的输入，也是本阶段的质量约束；阶段间不通过口头描述传递信息
 3. **统一语言作为基础设施**：`CONTEXT.md` 词汇表被所有阶段的 AI 行为依赖；术语冲突时实时拦截，发现新术语时立即写入，不批量处理
-4. **垂直切片驱动执行**：每个切片贯穿所有集成层（schema → API → UI → tests），可独立验证；禁止水平切片（先写完所有 API 再写所有 UI）的反模式
+4. **垂直切片驱动执行**：每个切片贯穿所有集成层（schema → API → UI → tests），可独立验证；禁止水平切片（先写完所有 API 再写所有 UI）的反模式。在 AI 辅助时代完整实现的边际成本趋近于零（gstack 实测：功能实现约 30x 时间压缩），"做完整版本"永远优于"做 90% 的快捷版"
 5. **Spec 必须可失败**：规格不应只是建议，而应能成为 AI 不能随便绕过的约束；实现偏离 Spec 时系统能够感知和拦截（来自 SDD 全景分析的最重要洞察）
 6. **宽进严出**：接受任何形式的输入（完整 PRD / Issue / 口头描述），但输出必须通过门控（自审核 + Developer 确认）才能流入下一阶段
+7. **证据先于声明（Evidence Before Claims）**：任何"完成了""通过了"的声明，必须附有刚刚运行过的命令输出作为证据；AI 不得使用"应该能行""看起来对了"等推测性语言；无验证证据的完成声明视为无效输出（来自 Superpowers verification-before-completion）
 
 ---
 
@@ -157,8 +158,9 @@ v2.0 扩展：战略、投注/立项、运维
 | P2-2 | **Doubt-Driven Development 协议** | Review 阶段引入对抗性审查：不是"检查对不对"而是"假设它是错的，找出哪里错"，CLAIM → EXTRACT → DOUBT → RECONCILE → STOP 五步闭环 | agent-skills |
 | P2-3 | **Source-Driven Development** | Execute 阶段编码前必须从官方文档获取并引用来源；来源层级（官方文档 > 官方博客 > Web 标准）；不确定的标记 UNVERIFIED | agent-skills |
 | P2-4 | **声明式工作流定义（YAML）** | 将工作流从 Markdown 改为 YAML 声明式定义，支持结构化步骤、门控、角色映射、on_reject 行为 | SpecKit + OpenSpec |
-| P2-5 | **Constitution 机制（项目宪法）** | 项目级不可违反约束文件（Always/Never/Ask First），所有 Skill 产出必须通过宪法检查 | SpecKit |
+| P2-5 | **Constitution 机制（项目宪法）** | 项目级不可违反约束文件（Always/Never/Ask First），所有 Skill 产出必须通过宪法检查；Plan 阶段新增 Phase -1 门控层：AI 在进入方案设计前，必须先通过宪法合规检查（如"是否超过 3 个模块""是否直接使用框架而非重复封装"），不合规须书面说明理由 | SpecKit |
 | P2-6 | **编排模式分类文档** | 明确支持和禁止的编排模式（禁止 Persona 调用 Persona，编排权属于用户或工作流定义） | agent-skills |
+| P2-7 | **系统性调试四阶段协议** | Execute 阶段遭遇 bug 时强制走四阶段：① Root Cause Investigation（先找根因，禁止直接提 fix）→ ② Pattern Analysis（对比可工作代码差异）→ ③ Hypothesis & Test（一次只测一个假设）→ ④ Implementation（修根因不修症状）；关键规则：尝试 3 次修复仍未解决必须停止并质疑架构，不得继续猜测 | Superpowers |
 
 ### Phase 3：中优先级功能
 
@@ -172,6 +174,9 @@ v2.0 扩展：战略、投注/立项、运维
 | P3-6 | **多维度评审视角** | Full 流程 Review 阶段可选启用：产品视角（CEO review）、设计视角、工程视角、开发者体验视角 | gstack |
 | P3-7 | **Idea Refine 结构化发想** | Requirement Review 前置的发散→收敛→聚焦三阶段流程，7 种发想透镜（逆向、约束移除、受众转换等） | agent-skills |
 | P3-8 | **自适应检查点** | 检查点数量根据任务复杂度动态调整：简单任务 0 个，中等 1 个，复杂全量，取代固定门控 | specs.md |
+| P3-9 | **结构化 Learnings 提取** | 每个阶段结束时自动从阶段制品中提取 4 类制度记忆：Decisions（技术决策及理由）/ Lessons（执行中才发现的教训）/ Patterns（可复用的实现模式）/ Surprises（出乎预料的发现）；每条记录附 Source 归因；可 hook 到外部 MCP 知识库，否则降级为本地 LEARNINGS.md | GSD |
+| P3-10 | **工作流健康检查（/sdlc:health）** | 提供三级状态诊断（HEALTHY / DEGRADED / BROKEN），含具名错误码体系、自动修复（--repair）和 Context 利用率检测（--context），帮助发现状态不一致、孤立制品、context 超限等问题 | GSD |
+| P3-11 | **评审接收协议** | Review 阶段 AI 接收评审意见时，外部评审建议视为"待验证"而非命令：先 grep 代码库确认是否真的被使用（YAGNI 检查）→ 不清楚的条目必须全部澄清后才开始实现 → 实现前独立验证技术正确性；禁止表演性认同回应 | Superpowers |
 
 ### Phase 4+：长期规划
 
@@ -182,9 +187,9 @@ v2.0 扩展：战略、投注/立项、运维
 | P4-3 | **Interface-First 任务排序** | Execute 阶段先定义接口合约再实现，避免切片间接口模糊 | GSD |
 | P4-4 | **SDD-Cache（文档缓存）** | 跨会话缓存已获取的官方文档，用 HTTP ETag 做时效性验证 | agent-skills |
 | P4-5 | **安全审计能力** | Review 阶段增加 OWASP Top 10 + STRIDE 威胁建模 | gstack + agent-skills |
-| P4-6 | **Learnings 系统** | JSONL 格式存储跨会话学习经验，角色执行时参考历史经验 | gstack + GSD |
-| P4-7 | **跨模型交叉验证** | 用不同架构的 AI 模型做第二意见审查，覆盖单一模型的盲点 | agent-skills |
-| P4-8 | **Change Sizing 约束** | 每次变更目标约 100 行，超 300 行需拆分，超 1000 行禁止，附带拆分策略 | agent-skills |
+| P4-6 | **跨模型交叉验证** | 用不同架构的 AI 模型做第二意见审查，覆盖单一模型的盲点 | agent-skills |
+| P4-7 | **Change Sizing 约束** | 每次变更目标约 100 行，超 300 行需拆分，超 1000 行禁止，附带拆分策略 | agent-skills |
+| P4-8 | **Spec Delta Archive（需求历史归档）** | Spec 变更不是整体覆写，而是显式写 delta（ADDED / MODIFIED / REMOVED Requirements）；REMOVED 必须附带 Reason + Migration 迁移路径；每次 apply 后将制品归档，支持需求演化的完整回溯 | OpenSpec |
 
 ---
 
@@ -221,14 +226,14 @@ v2.0 扩展：战略、投注/立项、运维
 | 技术设计阶段（独立化） | v1.0 | 从 Plan 阶段分离，加入 ADR 记录 |
 | 测试阶段（独立化） | v1.0 | QA 验证 + Eval 评测作为独立阶段 |
 | 上线阶段（preflight） | v1.0 | 发布前检查、回滚预案 |
-| Phase 2 功能（6 项） | v1.1 | Anti-Rationalization、Doubt-Driven、Source-Driven 等 |
+| Phase 2 功能（7 项） | v1.1 | Anti-Rationalization、Doubt-Driven、Source-Driven、系统性调试协议等 |
 | 模型路由（按阶段动态选模型） | v1.1 | 参见 `specs/framework/AI-Native-SDLC-v0.4.md` §6.8 |
-| Phase 3 功能（8 项） | v1.2 | 三层配置、persistent_facts、五轴评审等 |
+| Phase 3 功能（11 项） | v1.2 | 三层配置、persistent_facts、五轴评审、Learnings 提取、Health Check、评审接收协议等 |
 | 多 Agent 专家角色体系 | v1.x | MVP 中角色能力内嵌于 Skill 主线（依据 ADR 0001） |
 | Review 阶段自动修复闭环 | v1.x | MVP 只抛修复建议，由 Developer 决定采纳 |
 | 战略/投注/立项阶段 | v2.0 | 完整产研链路前端覆盖 |
 | 运维阶段 | v2.0 | 线上问题响应、需求回溯 |
-| Phase 4+ 功能（8 项） | v2.0+ | Action-based 工作流、Learnings 系统、跨模型验证等 |
+| Phase 4+ 功能（8 项） | v2.0+ | Action-based 工作流、Spec Delta Archive、跨模型验证、Change Sizing 等 |
 
 ---
 
