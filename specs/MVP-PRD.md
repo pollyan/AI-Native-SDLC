@@ -58,7 +58,9 @@
 
 ### 4.1 SKILL.md 通用章节结构
 
-每个 SKILL.md **必须包含以下 7 个章节**，缺少任何一个视为不合规：
+每个 SKILL.md **必须包含以下 6 个章节**，缺少任何一个视为不合规。
+
+**渐进式加载原则**：Spec 模板不内嵌在 Skill 文件中，而是通过 YAML frontmatter 的 `template_ref` 字段声明外部路径，仅在执行到"起草 Spec"步骤时才加载——避免每次 Skill 初始化时把模板内容占满上下文窗口。
 
 ```
 ---
@@ -74,6 +76,7 @@ output:
   produces:
     - <文件路径>
 dependencies: []
+template_ref: templates/<phase>-spec.md  # 起草 Spec 时按需加载，不在 Skill 初始化时加载
 ---
 
 ## 1. Persona（角色定义）
@@ -81,7 +84,7 @@ dependencies: []
 ## 3. Execution Flow（执行流程，分步骤）
 ## 4. Gate Checklist（门控自审核清单，Developer 签署前必须全部通过）
 ## 5. Anti-Patterns（禁止行为清单）
-## 6. Spec Template（本阶段产出的 Spec 模板，内嵌在 Skill 文件中）
+## 6. Template Reference（声明本阶段 Spec 模板的外部文件路径；模板内容不内嵌于 Skill，执行到"起草 Spec"步骤时才按需加载）
 ```
 
 ---
@@ -135,7 +138,8 @@ Step 5: Scope Decision（范围决策）
   → Developer 确认后进入 Step 6
 
 Step 6: 起草 Requirement Spec
-  → 使用内嵌的 Spec 模板（见 §6 Spec Template）
+  → 按需加载模板：templates/requirement-spec.md
+  → 此时才读取模板文件，Skill 初始化时不加载（节省上下文）
   → 每个 FR 必须有验收标准
   → 每个 NFR 必须有可测量指标
   → CONTEXT.md 中的 Avoid 词汇触发 ❌ 矛盾 标记
@@ -210,7 +214,8 @@ Step 3: 垂直切片拆分
   → 禁止创建纯横向切片（如"写完所有接口再写 UI"）
 
 Step 4: 起草 Plan Spec
-  → 使用内嵌的 Plan Spec 模板
+  → 按需加载模板：templates/plan-spec.md
+  → 此时才读取模板文件，Skill 初始化时不加载（节省上下文）
 
 Step 5: 门控自审核
   → 按 Gate Checklist 逐项检查
@@ -351,7 +356,9 @@ Axis 3 — 验收标准轴（独立上下文）：
   → 格式：| Slice | AC 条目 | 验证结果 | 证据 |
   → 结果：Pass / Fail / Unverifiable
 
-汇总：合并三轴发现，输出 Review Report，统计数量
+汇总：合并三轴发现
+  → 按需加载模板：templates/review-report.md
+  → 填写模板，输出 Review Report，统计数量
 ```
 
 **Gate Checklist**（6 项）：

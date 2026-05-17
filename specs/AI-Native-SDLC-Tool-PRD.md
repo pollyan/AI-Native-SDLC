@@ -168,7 +168,7 @@ Requirement Review Skill → [Requirement Spec.md]
 
 1. **Skill 自描述**（4 个 Skill 都有）：YAML Frontmatter 声明角色人格（Persona）、输入/输出契约、前置依赖，AI Coding 工具据此加载
 2. **统一语言检查**（4 个 Skill 都有）：每次生成前读取 `CONTEXT.md`，发现术语偏差立即拦截，新术语由 AI 提议、Developer 确认写入
-3. **Spec 模板 + 门控扫描**（4 个 Skill 都有）：每个 Skill 内嵌本阶段的 Spec 输出模板，门控时自动扫描 `TODO`/`TBD`/`??` 等未填 Placeholder，有则阻断
+3. **Spec 模板引用 + 门控扫描**（4 个 Skill 都有）：每个 Skill 通过 `template_ref` 字段引用外部模板（`templates/` 目录），执行到"起草 Spec"步骤时才按需加载，不在初始化时读取；门控时自动扫描 `TODO`/`TBD`/`??`，有则阻断
 4. **前置依赖检查**（4 个 Skill 都有）：加载时检查上游 Spec 文件是否存在（按命名约定 `specs/<phase>-spec-<feature>.md` 查找），缺失则提示 Developer 提供路径或先完成上游阶段
 5. **输入完整性评估 + 需求深度质询**（仅 `requirement-review.skill.md`）：① 对输入做完整性检查，缺什么问什么，不重复追问已有信息 ② 输入补全后必须完成 Problem Reframing（重诠释真实问题）和 Scope Decision（四选一范围决策），再起草 Spec
 6. **垂直切片追踪**（仅 `execute.skill.md`）：解析 Plan Spec 中的切片列表，生成可交互 Checkbox，每个切片独立推进，当前切片上下文精确传递给 LLM
