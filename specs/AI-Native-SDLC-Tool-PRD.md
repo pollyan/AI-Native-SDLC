@@ -155,15 +155,25 @@ Requirement Review Skill → [Requirement Spec.md]
 
 **中期（v1.x）集成策略：** 结合宿主 AI Coding 工具的插件 API（如 VSCode Extension API），将 Skill 加载、Spec 文件管理、状态追踪等能力封装为插件功能，但核心 Skill 逻辑仍以 `SKILL.md` 为单一真相来源。
 
-**核心设计约束（MVP 7 个 Skill 内建能力）：**
+**MVP 交付物 = 4 个 SKILL.md 文件**（每个文件对应一个阶段）：
 
-1. **工作流状态追踪**：在 `.agents/active` 目录下维护 `status.yaml`，记录当前阶段、当前切片、关键决策，支持跨会话恢复
-2. **Skill 自描述规范**：依据 ADR 0001，每个 `SKILL.md` 自包含角色人格（Persona）、I/O 契约及门控逻辑，不依赖外部角色管理
-3. **统一语言拦截规则**：每个 Skill 内嵌 `CONTEXT.md` 检查指令，在生成阶段拦截术语偏差，新术语写入由 AI 提议、Developer 确认
-4. **输入完整性评估**：Requirement Review Skill 对每次输入做完整性检查，仅针对缺失信息提问，已有信息不重复追问；输入完整则直接进入 Problem Reframing 和 Spec 起草——没有需要用户感知的"模式"切换
-5. **需求深度质询（Problem Reframing + Scope Decision）**：输入补全后，Requirement Review Skill 必须完成两步质询再产出 Spec：① **Problem Reframing**——主动重诠释"你真正要解决的是什么"，产出 `Original Request` vs `Reframed Understanding` 对比，可挑战用户原始表述 ② **Scope Decision**——输出四种范围决策之一（`Expansion / Selective Expansion / Hold Scope / Reduction`）并说明理由；防止 AI 把需求原样转写为 Spec 的"表演性认同"
-6. **垂直切片追踪**：Execute Skill 解析 Plan Spec 中的切片列表，生成可交互 Checkbox，将当前切片上下文精确传递给 LLM
-7. **Spec 模板与扫描**：每个阶段 Skill 内嵌对应 Spec 模板，自动扫描 Placeholder（`TODO`、`TBD`、`??`）并在门控时阻断
+| Skill 文件 | 职责 |
+|---|---|
+| `requirement-review.skill.md` | 收集需求 → 质询本质问题 → 产出 Requirement Spec |
+| `plan.skill.md` | 读取 Requirement Spec → 拆分垂直切片 → 产出 Plan Spec |
+| `execute.skill.md` | 读取 Plan Spec → 逐切片实现 → 更新切片状态 |
+| `review.skill.md` | 读取所有制品 → 三轴审查 → 产出 Review Report |
+
+**每个 SKILL.md 在编写时必须满足以下 7 条内容设计约束**（不是 7 个独立的 Skill，而是写进 4 个 Skill 里的行为要求）：
+
+1. **Skill 自描述**（4 个 Skill 都有）：YAML Frontmatter 声明角色人格（Persona）、输入/输出契约、前置依赖，AI Coding 工具据此加载
+2. **统一语言检查**（4 个 Skill 都有）：每次生成前读取 `CONTEXT.md`，发现术语偏差立即拦截，新术语由 AI 提议、Developer 确认写入
+3. **Spec 模板 + 门控扫描**（4 个 Skill 都有）：每个 Skill 内嵌本阶段的 Spec 输出模板，门控时自动扫描 `TODO`/`TBD`/`??` 等未填 Placeholder，有则阻断
+4. **状态追踪**（4 个 Skill 都写）：每次阶段切换更新 `.agents/active/status.yaml`，记录当前阶段、当前切片、关键决策，支持跨会话恢复
+5. **输入完整性评估 + 需求深度质询**（仅 `requirement-review.skill.md`）：① 对输入做完整性检查，缺什么问什么，不重复追问已有信息 ② 输入补全后必须完成 Problem Reframing（重诠释真实问题）和 Scope Decision（四选一范围决策），再起草 Spec
+6. **垂直切片追踪**（仅 `execute.skill.md`）：解析 Plan Spec 中的切片列表，生成可交互 Checkbox，每个切片独立推进，当前切片上下文精确传递给 LLM
+7. **前置依赖检查**（4 个 Skill 都有）：加载时自动评估上游 Spec 是否存在且合规，缺失则阻断并提示 Developer 先完成上游阶段
+
 
 ---
 
