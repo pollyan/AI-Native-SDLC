@@ -169,7 +169,7 @@ Requirement Review Skill → [Requirement Spec.md]
 1. **Skill 自描述**（4 个 Skill 都有）：YAML Frontmatter 声明角色人格（Persona）、输入/输出契约、前置依赖，AI Coding 工具据此加载
 2. **统一语言检查**（4 个 Skill 都有）：每次生成前读取 `CONTEXT.md`，发现术语偏差立即拦截，新术语由 AI 提议、Developer 确认写入
 3. **Spec 模板 + 门控扫描**（4 个 Skill 都有）：每个 Skill 内嵌本阶段的 Spec 输出模板，门控时自动扫描 `TODO`/`TBD`/`??` 等未填 Placeholder，有则阻断
-4. **状态追踪**（4 个 Skill 都写）：每次阶段切换更新 `.agents/active/status.yaml`，记录当前阶段、当前切片、关键决策，支持跨会话恢复
+4. **前置依赖检查**（4 个 Skill 都有）：加载时检查上游 Spec 文件是否存在（按命名约定 `specs/<phase>-spec-<feature>.md` 查找），缺失则提示 Developer 提供路径或先完成上游阶段
 5. **输入完整性评估 + 需求深度质询**（仅 `requirement-review.skill.md`）：① 对输入做完整性检查，缺什么问什么，不重复追问已有信息 ② 输入补全后必须完成 Problem Reframing（重诠释真实问题）和 Scope Decision（四选一范围决策），再起草 Spec
 6. **垂直切片追踪**（仅 `execute.skill.md`）：解析 Plan Spec 中的切片列表，生成可交互 Checkbox，每个切片独立推进，当前切片上下文精确传递给 LLM
 7. **前置依赖检查**（4 个 Skill 都有）：加载时自动评估上游 Spec 是否存在且合规，缺失则阻断并提示 Developer 先完成上游阶段
@@ -216,7 +216,7 @@ Requirement Review Skill → [Requirement Spec.md]
 | P3-10 | **工作流健康检查（/sdlc:health）** | 提供三级状态诊断（HEALTHY / DEGRADED / BROKEN），含具名错误码体系、自动修复（--repair）和 Context 利用率检测（--context），帮助发现状态不一致、孤立制品、context 超限等问题 | GSD |
 | P3-11 | **评审接收协议** | Review 阶段 AI 接收评审意见时，外部评审建议视为"待验证"而非命令：先 grep 代码库确认是否真的被使用（YAGNI 检查）→ 不清楚的条目必须全部澄清后才开始实现 → 实现前独立验证技术正确性；禁止表演性认同回应 | Superpowers |
 | P3-12 | **切片执行模式分类（HITL/AFK）** | Plan Spec 的每个切片标注 `execution_mode: HITL | AFK`：HITL（Human-in-the-Loop）需要 Developer 介入确认；AFK（Away From Keyboard）可无监督自动执行并优先排序；Slice Tracker 可基于此过滤"可批量运行的切片"，让 Developer 把精力集中在真正需要决策的环节 | Matt Pocock |
-| P3-13 | **会话交接协议（Session Handoff）** | 上下文接近 50% 警戒线时，Skill 主动生成结构化 handoff 摘要（当前切片进度 + 关键决策 + 未解决问题 + 下一步行动），格式与 `status.yaml` 互补；新会话加载 handoff 文件后立刻知道当前状态，无需回放历史；防止 AI 降智期间产生架构漂移 | Matt Pocock + GSD |
+| P3-13 | **会话交接协议（Session Handoff）** | 上下文接近 50% 警戒线时，Skill 主动生成结构化 handoff 摘要（当前切片进度 + 关键决策 + 未解决问题 + 下一步行动），新会话加载 handoff 文件后立刻知道当前状态，无需回放历史；防止 AI 降智期间产生架构漂移 | Matt Pocock + GSD |
 | P3-14 | **依赖合法性检查（Dependency Legitimacy Gate）** | Execute 阶段切片执行前，对 Plan 中新引入的依赖包（npm/pip 等）进行基础合法性验证：包名是否存在于官方注册表、版本是否真实存在；不确定的自动标记 `[UNVERIFIED]` 并阻断执行，要求 Developer 确认后才继续；抵御 AI 幻觉引入不存在依赖（Slopsquatting）的风险 | GSD |
 
 
@@ -281,6 +281,6 @@ Requirement Review Skill → [Requirement Spec.md]
 
 ## 十一、Further Notes
 
-- **Context 预算监控**：由于这是长链路强依赖上下文的系统，状态机引擎需重点监控 Token 消耗。若单个阶段上下文逼近 50% 红线，应在 `status.yaml` 与交互界面透出警告，防止 AI 降智导致架构漂移
+- **Context 预算监控**：由于这是长链路强依赖上下文的系统，状态机引擎需重点监控 Token 消耗。若单个阶段上下文逼近 50% 红线，Skill 应主动提示 Developer 开启新会话，防止 AI 降智导致架构漂移
 - **进阶问题积压**：高阶 Requirement Review 功能（洞察层 3 问、挑战层 6 问、跨模型第二意见等）已在 `archive/2026-05-17-specs-stages/requirement-review/功能积压-进阶问题.md` 中详细记录，按 v1.1/v1.2/v2.0 路线逐步启用
 - **SDD 全景定位**：依据 `specs/framework/SDD框架全景横纵分析报告.md`，我们在五层市场堆栈中定位于第三层（多代理 SDLC 方法论）+ 第二层（开源 SDD 工具链）的结合，以"企业场景 + 人主控 + 可执行 Spec 约束"为核心差异化

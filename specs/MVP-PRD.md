@@ -29,7 +29,6 @@
 | `templates/plan-spec.md` | Plan Spec 模板（含字段定义） |
 | `templates/review-report.md` | Review Report 模板（含字段定义） |
 | `templates/CONTEXT.md` | 项目统一语言词汇表模板 |
-| `templates/status.yaml` | 工作流状态追踪文件 schema |
 | 安装指南 | 覆盖 Cursor / Claude Code / Windsurf 三个宿主工具 |
 
 ### Out of Scope（MVP 明确不做）
@@ -74,8 +73,6 @@ input:
 output:
   produces:
     - <文件路径>
-  updates:
-    - .agents/active/status.yaml
 dependencies: []
 ---
 
@@ -85,7 +82,6 @@ dependencies: []
 ## 4. Gate Checklist（门控自审核清单，Developer 签署前必须全部通过）
 ## 5. Anti-Patterns（禁止行为清单）
 ## 6. Spec Template（本阶段产出的 Spec 模板，内嵌在 Skill 文件中）
-## 7. Status Update（执行完成后 status.yaml 的更新规则）
 ```
 
 ---
@@ -99,11 +95,9 @@ dependencies: []
 **输入契约**：
 - Required：任意形式的需求描述（口头/Issue/PRD 片段均可）
 - Required：`CONTEXT.md`（若不存在则先引导 Developer 创建）
-- Optional：`status.yaml`
 
 **输出契约**：
 - Produces：`specs/requirement-spec-<feature-name>.md`
-- Updates：`status.yaml`（`phases.requirement-review.status → approved`）
 
 **执行流程**（7 步，顺序不可跳过）：
 
@@ -150,7 +144,7 @@ Step 6: 起草 Requirement Spec
 Step 7: 门控自审核
   → 按 Gate Checklist 逐项检查
   → 全部通过后将 Checklist 输出给 Developer 审阅
-  → Developer 签字确认后写入文件，更新 status.yaml
+  → Developer 签字确认后写入文件
 ```
 
 **Gate Checklist**（6 项，全部必须通过）：
@@ -181,16 +175,15 @@ Step 7: 门控自审核
 **输入契约**：
 - Required：`specs/requirement-spec-<feature-name>.md`（status 必须为 approved）
 - Required：`CONTEXT.md`
-- Optional：`status.yaml`、已有代码库结构
+- Optional：已有代码库结构
 
 **输出契约**：
 - Produces：`specs/plan-spec-<feature-name>.md`
-- Updates：`status.yaml`（`phases.plan.status → approved`）
 
 **前置依赖检查**（执行 Step 1 前）：
 ```
-[ ] requirement-spec 文件存在且 status.yaml 中 requirement-review.status = approved
-    → 不满足：阻断，提示 Developer 先完成 Requirement Review
+[ ] requirement-spec 文件存在（路径约定：specs/requirement-spec-<feature>.md）
+    → 不满足：请提供 Requirement Spec 文件路径或内容
 ```
 
 **执行流程**（5 步）：
@@ -222,7 +215,7 @@ Step 4: 起草 Plan Spec
 Step 5: 门控自审核
   → 按 Gate Checklist 逐项检查
   → 全部通过后输出给 Developer
-  → Developer 确认后写入文件，更新 status.yaml
+  → Developer 确认后写入文件
 ```
 
 **Gate Checklist**（6 项）：
@@ -250,16 +243,15 @@ Step 5: 门控自审核
 
 **输入契约**：
 - Required：`specs/plan-spec-<feature-name>.md`（status 必须为 approved）
-- Required：`CONTEXT.md`、`status.yaml`
+- Required：`CONTEXT.md`
 - Optional：相关源码文件、错误日志
 
 **输出契约**：
 - Produces：实现代码（按切片提交）
-- Updates：`status.yaml`（每个切片完成后更新 slice status）
 
 **前置依赖检查（Pre-Execute Readiness Gate）**，进入执行前强制扫描：
 ```
-[ ] plan-spec 文件存在且 status.yaml 中 plan.status = approved
+[ ] plan-spec 文件存在（路径约定：specs/plan-spec-<feature>.md）
 [ ] Plan Spec 中所有切片都有验收标准（无"待定"项）
 [ ] Plan Spec 中无未解决的 [NEEDS CLARIFICATION]
 [ ] Plan Spec 中所有切片都有测试计划
@@ -273,7 +265,6 @@ For each slice（按依赖顺序）:
 
   Step 1: 宣布当前切片
     → 输出：「开始执行切片 S-XXX：<切片名称>」
-    → 更新 status.yaml：current_slice = S-XXX，status = in-progress
 
   Step 2: 确认理解
     → 复述切片的验收标准和测试计划
@@ -297,7 +288,6 @@ For each slice（按依赖顺序）:
     → 对照验收标准逐条确认，每条附"通过/不通过 + 证据"
 
   Step 6: 完成声明
-    → 更新 status.yaml：S-XXX.status = done
     → 询问：「是否继续执行下一切片？」
 ```
 
@@ -306,7 +296,6 @@ For each slice（按依赖顺序）:
 [ ] 所有验收标准逐条对照并附证据
 [ ] 测试命令已运行，结果已展示
 [ ] 未实现 Scope 外的功能
-[ ] status.yaml 已更新
 [ ] Developer 确认：_______ 日期：_______
 ```
 
@@ -329,15 +318,14 @@ For each slice（按依赖顺序）:
 - Required：`specs/requirement-spec-<feature-name>.md`
 - Required：`specs/plan-spec-<feature-name>.md`
 - Required：本次实现的代码变更（git diff 或文件列表）
-- Required：`CONTEXT.md`、`status.yaml`（所有切片 done）
+- Required：`CONTEXT.md`
 
 **输出契约**：
 - Produces：`specs/review-report-<feature-name>.md`
-- Updates：`status.yaml`（`phases.review.status → approved`）
 
 **前置依赖检查**：
 ```
-[ ] status.yaml 中 execute 阶段所有切片 status = done
+[ ] 确认 Plan Spec 中所有切片均已实现并验证完成
 [ ] requirement-spec 和 plan-spec 文件均存在
 → 不满足：阻断，提示 Developer 先完成所有切片
 ```
@@ -418,47 +406,6 @@ Axis 3 — 验收标准轴（独立上下文）：
 - 发现输出中使用 Avoid 列表词汇，立即标记 `❌ 矛盾: <术语>` 并停止
 - 发现新术语：AI 提议定义 → Developer 确认 → 立即写入，不批量处理
 
-### 5.2 status.yaml Schema
-
-```yaml
-version: "1.0"
-project: ""
-feature: ""
-current_phase: "requirement-review"  # requirement-review | plan | execute | review | done
-current_slice: null
-
-phases:
-  requirement-review:
-    status: "not-started"   # not-started | in-progress | approved
-    spec_path: null
-    approved_at: null
-  plan:
-    status: "not-started"
-    spec_path: null
-    approved_at: null
-  execute:
-    slices:
-      - id: "S-001"
-        name: ""
-        status: "not-started"  # not-started | in-progress | done | blocked
-        execution_mode: "HITL" # HITL | AFK
-        started_at: null
-        completed_at: null
-  review:
-    status: "not-started"
-    report_path: null
-    approved_at: null
-
-key_decisions:
-  - decision: ""
-    rationale: ""
-    date: ""
-
-open_questions:
-  - question: ""
-    affects: ""
-    status: "open"  # open | resolved
-```
 
 ### 5.3 Requirement Spec 模板
 
@@ -619,7 +566,6 @@ open_questions:
 **US-09**：逐切片推进并附完成证据
 - [ ] 每次只实现一个切片，完成后询问是否继续
 - [ ] 切片完成输出：测试命令 + 结果 + 验收标准逐条对照
-- [ ] status.yaml 每切片完成后自动更新
 
 **US-10**：Bug 走四阶段调试协议
 - [ ] 遇 Bug 先输出 3-5 个可证伪假设
@@ -644,7 +590,6 @@ open_questions:
 - [ ] 4 个 SKILL.md 全部存在，7 章节齐全（缺章节视为不合规）
 - [ ] 3 个 Spec 模板存在且字段完整
 - [ ] CONTEXT.md 模板存在
-- [ ] status.yaml 模板存在
 - [ ] 安装指南覆盖 Cursor / Claude Code / Windsurf
 
 ### 行为验证
@@ -654,7 +599,7 @@ open_questions:
 
 ### 端到端验证
 - [ ] FDE 在 30 分钟内安装 4 个 Skill 到 Cursor 并完成 Hello World 全流程
-- [ ] 全流程结束后 status.yaml 所有阶段 status = approved
+- [ ] 全流程结束后所有 Spec 文件均存在，每个文件 Gate Checklist 已签署
 - [ ] 全流程产出 3 个 Spec 文件，均通过 Gate Checklist
 
 ### 文档质量
@@ -676,8 +621,7 @@ templates/
 ├── requirement-spec.md
 ├── plan-spec.md
 ├── review-report.md
-├── CONTEXT.md
-└── status.yaml
+└── CONTEXT.md
 
 docs/
 └── installation-guide.md
@@ -688,12 +632,12 @@ docs/
 ```
 <project-root>/
 ├── CONTEXT.md
-├── .agents/active/status.yaml
 └── specs/
     ├── requirement-spec-<feature>.md
     ├── plan-spec-<feature>.md
     └── review-report-<feature>.md
 ```
+
 
 ---
 
