@@ -154,12 +154,12 @@ v2.0 扩展：战略、投注/立项、运维
 
 | # | 功能 | 核心价值 | 借鉴来源 |
 |---|---|---|---|
-| P2-1 | **Anti-Rationalization 机制** | 在每个阶段关键决策点预设 AI 常见偷懒借口 + 反驳表，防止 agent 跳过关键步骤 | agent-skills (Addy Osmani) |
-| P2-2 | **Doubt-Driven Development 协议** | Review 阶段引入对抗性审查：不是"检查对不对"而是"假设它是错的，找出哪里错"，CLAIM → EXTRACT → DOUBT → RECONCILE → STOP 五步闭环 | agent-skills |
-| P2-3 | **Source-Driven Development** | Execute 阶段编码前必须从官方文档获取并引用来源；来源层级（官方文档 > 官方博客 > Web 标准）；不确定的标记 UNVERIFIED | agent-skills |
+| P2-1 | **Anti-Rationalization 机制** | 在每个阶段关键决策点预设 AI 常见偷懒借口 + 反驳表，防止 agent 跳过关键步骤 | 行业最佳实践 |
+| P2-2 | **Doubt-Driven Development 协议** | Review 阶段引入对抗性审查：不是"检查对不对"而是"假设它是错的，找出哪里错"，CLAIM → EXTRACT → DOUBT → RECONCILE → STOP 五步闭环 | 行业最佳实践 |
+| P2-3 | **Source-Driven Development** | Execute 阶段编码前必须从官方文档获取并引用来源；来源层级（官方文档 > 官方博客 > Web 标准）；不确定的标记 UNVERIFIED | 行业最佳实践 |
 | P2-4 | **声明式工作流定义（YAML）** | 将工作流从 Markdown 改为 YAML 声明式定义，支持结构化步骤、门控、角色映射、on_reject 行为 | SpecKit + OpenSpec |
 | P2-5 | **Constitution 机制（项目宪法）** | 项目级不可违反约束文件（Always/Never/Ask First），所有 Skill 产出必须通过宪法检查；Plan 阶段新增 Phase -1 门控层：AI 在进入方案设计前，必须先通过宪法合规检查（如"是否超过 3 个模块""是否直接使用框架而非重复封装"），不合规须书面说明理由 | SpecKit |
-| P2-6 | **编排模式分类文档** | 明确支持和禁止的编排模式（禁止 Persona 调用 Persona，编排权属于用户或工作流定义） | agent-skills |
+| P2-6 | **编排模式分类文档** | 明确支持和禁止的编排模式（禁止 Persona 调用 Persona，编排权属于用户或工作流定义） | 行业最佳实践 |
 | P2-7 | **系统性调试四阶段协议** | Execute 阶段遭遇 bug 时强制走四阶段：① Root Cause Investigation（先找根因，禁止直接提 fix）→ ② Pattern Analysis（对比可工作代码差异）→ ③ Hypothesis & Test（一次只测一个假设）→ ④ Implementation（修根因不修症状）；关键规则：尝试 3 次修复仍未解决必须停止并质疑架构，不得继续猜测 | Superpowers |
 
 ### Phase 3：中优先级功能
@@ -168,11 +168,11 @@ v2.0 扩展：战略、投注/立项、运维
 |---|---|---|---|
 | P3-1 | **三层配置合并** | base（框架默认）→ team（项目级）→ user（个人级）三层配置合并，支持标量覆盖和表深度合并 | BMAD |
 | P3-2 | **角色 persistent_facts** | 每个阶段可记住持久事实（技术栈选型、项目约束、用户偏好），跨会话引用 | BMAD |
-| P3-3 | **Incremental Implementation** | Execute 阶段强制增量实现：每切片约 100 行，三种切片策略（垂直切片/合约优先/风险优先），每步实现→测试→验证→提交 | agent-skills |
-| P3-4 | **Context Engineering** | 明确定义每阶段上下文加载层级：规则文件 > Spec/架构文档 > 相关源码 > 错误输出 > 对话历史；信任分级（可信/需验证/不可信） | agent-skills |
-| P3-5 | **五轴代码评审** | Review 阶段覆盖 5 个维度：正确性、可读性、架构、安全、性能，每个发现标记严重级别（Critical/Important/Minor） | agent-skills |
+| P3-3 | **Incremental Implementation** | Execute 阶段强制增量实现：每切片约 100 行，三种切片策略（垂直切片/合约优先/风险优先），每步实现→测试→验证→提交 | 行业最佳实践 |
+| P3-4 | **Context Engineering** | 明确定义每阶段上下文加载层级：规则文件 > Spec/架构文档 > 相关源码 > 错误输出 > 对话历史；信任分级（可信/需验证/不可信） | 行业最佳实践 |
+| P3-5 | **五轴代码评审** | Review 阶段覆盖 5 个维度：正确性、可读性、架构、安全、性能，每个发现标记严重级别（Critical/Important/Minor） | 行业最佳实践 |
 | P3-6 | **多维度评审视角** | Full 流程 Review 阶段可选启用：产品视角（CEO review）、设计视角、工程视角、开发者体验视角 | gstack |
-| P3-7 | **Idea Refine 结构化发想** | Requirement Review 前置的发散→收敛→聚焦三阶段流程，7 种发想透镜（逆向、约束移除、受众转换等） | agent-skills |
+| P3-7 | **Idea Refine 结构化发想** | Requirement Review 前置的发散→收敛→聚焦三阶段流程，7 种发想透镜（逆向、约束移除、受众转换等） | 行业最佳实践 |
 | P3-8 | **自适应检查点** | 检查点数量根据任务复杂度动态调整：简单任务 0 个，中等 1 个，复杂全量，取代固定门控 | specs.md |
 | P3-9 | **结构化 Learnings 提取** | 每个阶段结束时自动从阶段制品中提取 4 类制度记忆：Decisions（技术决策及理由）/ Lessons（执行中才发现的教训）/ Patterns（可复用的实现模式）/ Surprises（出乎预料的发现）；每条记录附 Source 归因；可 hook 到外部 MCP 知识库，否则降级为本地 LEARNINGS.md | GSD |
 | P3-10 | **工作流健康检查（/sdlc:health）** | 提供三级状态诊断（HEALTHY / DEGRADED / BROKEN），含具名错误码体系、自动修复（--repair）和 Context 利用率检测（--context），帮助发现状态不一致、孤立制品、context 超限等问题 | GSD |
@@ -185,10 +185,10 @@ v2.0 扩展：战略、投注/立项、运维
 | P4-1 | **Action-based 非线性工作流** | 随时 update spec、随时回退到 Plan，Action 随时可用而不是按顺序走阶段 | OpenSpec |
 | P4-2 | **Wave-based 并行执行** | 按依赖图分组，无依赖的切片并行执行 | GSD |
 | P4-3 | **Interface-First 任务排序** | Execute 阶段先定义接口合约再实现，避免切片间接口模糊 | GSD |
-| P4-4 | **SDD-Cache（文档缓存）** | 跨会话缓存已获取的官方文档，用 HTTP ETag 做时效性验证 | agent-skills |
-| P4-5 | **安全审计能力** | Review 阶段增加 OWASP Top 10 + STRIDE 威胁建模 | gstack + agent-skills |
-| P4-6 | **跨模型交叉验证** | 用不同架构的 AI 模型做第二意见审查，覆盖单一模型的盲点 | agent-skills |
-| P4-7 | **Change Sizing 约束** | 每次变更目标约 100 行，超 300 行需拆分，超 1000 行禁止，附带拆分策略 | agent-skills |
+| P4-4 | **SDD-Cache（文档缓存）** | 跨会话缓存已获取的官方文档，用 HTTP ETag 做时效性验证 | 行业最佳实践 |
+| P4-5 | **安全审计能力** | Review 阶段增加 OWASP Top 10 + STRIDE 威胁建模 | gstack |
+| P4-6 | **跨模型交叉验证** | 用不同架构的 AI 模型做第二意见审查，覆盖单一模型的盲点 | 行业最佳实践 |
+| P4-7 | **Change Sizing 约束** | 每次变更目标约 100 行，超 300 行需拆分，超 1000 行禁止，附带拆分策略 | 行业最佳实践 |
 | P4-8 | **Spec Delta Archive（需求历史归档）** | Spec 变更不是整体覆写，而是显式写 delta（ADDED / MODIFIED / REMOVED Requirements）；REMOVED 必须附带 Reason + Migration 迁移路径；每次 apply 后将制品归档，支持需求演化的完整回溯 | OpenSpec |
 
 ---

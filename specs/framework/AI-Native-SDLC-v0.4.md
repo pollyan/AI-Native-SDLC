@@ -79,7 +79,7 @@ AI-Native SDLC（AI 原生软件开发生命周期）是一套面向企业开发
 - Spec 模板 = 方法论的具象化，内置最佳实践
 - 通过模板约束内容结构，保证稳定的输出质量
 
-### 原则 2.5：流程优于文档（借鉴 agent-skills）
+### 原则 2.5：流程优于文档（借鉴行业最佳实践）
 
 - Spec 模板应是可执行流程，而非参考文档
 - 每个能力点必须有步骤、检查点、退出条件
@@ -886,12 +886,12 @@ AI-Native SDLC 选择的是**中间路线**：
 
 | # | 功能 | 借鉴来源 | 说明 |
 |---|------|---------|------|
-| 1 | Anti-Rationalization 机制 | agent-skills | 在关键决策点预设 AI 常见偷懒借口和反驳 |
-| 2 | Doubt-Driven Development 协议 | agent-skills | Review 阶段引入对抗性审查 |
-| 3 | Source-Driven Development 能力 | agent-skills | 编码前从官方文档获取并引用来源 |
+| 1 | Anti-Rationalization 机制 | 行业最佳实践 | 在关键决策点预设 AI 常见偷懒借口和反驳 |
+| 2 | Doubt-Driven Development 协议 | 行业最佳实践 | Review 阶段引入对抗性审查 |
+| 3 | Source-Driven Development 能力 | 行业最佳实践 | 编码前从官方文档获取并引用来源 |
 | 4 | 声明式工作流定义（YAML） | SpecKit | 工作流从 Markdown 转为 YAML 声明式定义 |
 | 5 | Constitution 机制 | SpecKit | 项目级"宪法"文件，定义不可违反的质量标准 |
-| 6 | 编排模式分类文档 | agent-skills | 明确支持和不支持的编排模式 |
+| 6 | 编排模式分类文档 | 行业最佳实践 | 明确支持和不支持的编排模式 |
 
 ### 9.3 长期扩展方向
 
@@ -900,8 +900,8 @@ AI-Native SDLC 选择的是**中间路线**：
 | 1 | 覆盖完整产研全流程 | — | 战略→投注→需求→设计→开发→测试→上线→运维 |
 | 2 | 三层配置合并 | BMAD | base → team → user 三层配置，支持标量覆盖、表深度合并 |
 | 3 | 角色 persistent_facts | BMAD | 每个角色记忆持久事实（技术栈选型、项目约束等） |
-| 4 | 增量实现（Incremental Implementation） | agent-skills | 每个切片 ~100 行，三种切片策略 |
-| 5 | 上下文工程（Context Engineering） | agent-skills | 定义角色在每个阶段的上下文加载策略 |
+| 4 | 增量实现（Incremental Implementation） | 行业最佳实践 | 每个切片 ~100 行，三种切片策略 |
+| 5 | 上下文工程（Context Engineering） | 行业最佳实践 | 定义角色在每个阶段的上下文加载策略 |
 | 6 | 多维度评审 | gstack | CEO/设计/工程/DX 多视角评审 |
 | 7 | Action-based 工作流 | OpenSpec | 非线性工作流，随时可回退、可更新 |
 | 8 | Wave-based 并行执行 | GSD | 无依赖的切片并行执行 |
@@ -947,7 +947,7 @@ AI-Native SDLC 选择的是**中间路线**：
 | OpenSpec | github.com/Fission-AI/OpenSpec | 46K | Delta Spec、活跃/归档分离、RFC 2119 关键词 |
 | specs.md | github.com/fabriqaai/specs.md | 142 | 自适应检查点、多流程可选 |
 | Matt Pocock Skills | mattpocock.com | — | 两轴评审、垂直切片、CONTEXT.md 词汇表、拷问式审查 |
-| agent-skills | github.com/addyosmani/agent-skills | 新 | Anti-Rationalization、Doubt-Driven、Source-Driven |
+| 行业最佳实践 | github.com/addyosmani/行业最佳实践 | 新 | Anti-Rationalization、Doubt-Driven、Source-Driven |
 
 ### 附录 C：设计决策历史
 

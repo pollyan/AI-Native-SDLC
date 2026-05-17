@@ -124,7 +124,7 @@ Matt Pocock Skills 库包含 **27 个 skill**，分布在 6 个子目录中：
 | 活跃/归档分离 | OpenSpec 的文件管理模式，我们已纳入 |
 | Quick/Standard/Full 流程分层 | 我们的三种流程模式，Matt 没有（每个 skill 独立调用） |
 | 角色与工作流解耦 | 我们的双层架构，Matt 是单层（skill 直接用） |
-| Anti-Rationalization | 已规划（来自 agent-skills），Matt 没有显式机制 |
+| Anti-Rationalization | 已规划（来自行业最佳实践），Matt 没有显式机制 |
 | 可观测性 log.jsonl | 我们的轻量日志，Matt 没有 |
 | 模型路由 | 我们的模型分配策略，Matt 没有提及 |
 
